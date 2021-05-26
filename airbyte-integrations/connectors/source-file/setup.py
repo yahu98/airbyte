@@ -44,7 +44,7 @@ MAIN_REQUIREMENTS = [
 ]
 
 TEST_REQUIREMENTS = [
-    "boto3==1.16.57",
+    "boto3==1.17.49",
     "pytest==6.1.2",
     "pytest-docker==0.10.1",
 ]
