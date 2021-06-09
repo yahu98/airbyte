@@ -177,20 +177,20 @@ def test_get_simple_table_name(json_path: List[str], expected_postgres: str, exp
         (
             ["parent", "child"],
             "parent_30c_child",
-            "parent__30c_child",
-            "PARENT_30C_CHILD",
+            "parent_30c_child",
+            "PARENT_30c_CHILD",
         ),
         (
             ["The parent stream has a nested column with a", "short_substream_name"],
             "the_parent_stream__cd9_short_substream_name",
             "The_parent_stream_has_a_nested_column_with_a_cd9_short_substream_name",
-            "THE_PARENT_CD9_SHOR__NAME",
+            "THE_PARENT_cd9_SHOR__NAME",
         ),
         (
             ["The parent stream has a nested column with a", "substream with a rather long name"],
             "the_parent_0a5_substream_wi__her_long_name",
-            "The_parent_stream_has_a_nested_column_with_a__0a5_substream_with_a_rather_long_name",
-            "THE_PARENT_0A5_SUBS__NAME",
+            "The_parent_stream_has_a_nested_column_with_a_0a5_substream_with_a_rather_long_name",
+            "THE_PARENT_0a5_SUBS__NAME",
         ),
     ],
 )
