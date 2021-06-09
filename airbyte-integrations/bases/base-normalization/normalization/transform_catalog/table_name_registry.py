@@ -352,7 +352,7 @@ def get_nested_hashed_table_name(name_transformer: DestinationNameTransformer, s
     """
     parent = "_".join(json_path[:-1])
     max_length = name_transformer.get_name_max_length()
-    json_path_hash = hash_json_path([schema] + json_path)
+    json_path_hash = name_transformer.normalize_table_name(hash_json_path([schema] + json_path), False, False)
     norm_parent = parent if not parent else name_transformer.normalize_table_name(parent, False, False)
     norm_child = name_transformer.normalize_table_name(child, False, False)
     min_parent_length = min(MINIMUM_PARENT_LENGTH, len(norm_parent))

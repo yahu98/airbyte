@@ -178,7 +178,7 @@ class DestinationNameTransformer:
             if not is_quoted and not self.needs_quotes(input_name):
                 result = input_name.upper()
         elif self.destination_type.value == DestinationType.ORACLE.value:
-            result = input_name.uppper()
+            result = input_name.upper()
         else:
             raise KeyError(f"Unknown destination type {self.destination_type}")
         return result
