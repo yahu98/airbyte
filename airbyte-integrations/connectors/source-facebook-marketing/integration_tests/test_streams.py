@@ -27,7 +27,6 @@ import copy
 from typing import Any, List, MutableMapping, Set, Tuple
 
 import pytest
-from source_acceptance_test.base import BaseTest
 from airbyte_cdk import AirbyteLogger
 from airbyte_cdk.models import AirbyteMessage, ConfiguredAirbyteCatalog, Type
 from source_facebook_marketing.source import SourceFacebookMarketing
@@ -56,7 +55,7 @@ def configured_catalog_fixture():
     return ConfiguredAirbyteCatalog.parse_file("integration_tests/configured_catalog.json")
 
 
-class TestFacebookMarketingSource(BaseTest):
+class TestFacebookMarketingSource:
     @pytest.mark.parametrize(
         "stream_name, deleted_id", [("ads", "23846756820320398"), ("campaigns", "23846541919710398"), ("ad_sets", "23846541706990398")]
     )
