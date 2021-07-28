@@ -33,8 +33,6 @@ import string
 import subprocess
 import sys
 import threading
-import time
-import cx_Oracle
 from typing import Any, Dict, List
 
 from normalization.destination_type import DestinationType
@@ -53,7 +51,7 @@ class DbtIntegrationTest(object):
 
     def setup_db(self):
         # self.setup_postgres_db()
-        #self.setup_mysql_db()
+        # self.setup_mysql_db()
         self.setup_oracle_db()
 
     def setup_postgres_db(self):
@@ -126,14 +124,14 @@ class DbtIntegrationTest(object):
 
     def setup_oracle_db(self):
         print("Starting localhost oracle container for tests")
-        port = self.find_free_port()
+        # port = self.find_free_port()
         config = {
             "host": "localhost",
-            "port": 1521, #port,
+            "port": 1521,  # port,
             "sid": "xe",
             "username": "system",
             "password": "testpassword",
-            "schema": " users"
+            "schema": " users",
         }
         # commands = [
         #     "docker",
@@ -153,7 +151,6 @@ class DbtIntegrationTest(object):
         # print("Executing: ", " ".join(commands))
         # subprocess.call(commands)
         # time.sleep(120)
-
 
         if not os.path.exists("../secrets"):
             os.makedirs("../secrets")
@@ -206,8 +203,6 @@ class DbtIntegrationTest(object):
             }
         elif destination_type.value == DestinationType.MYSQL.value:
             profiles_config["database"] = self.target_schema
-        elif destination_type.value == DestinationType.ORACLE.value:
-            profiles_config["target"] = "dev"
         else:
             profiles_config["schema"] = self.target_schema
         profiles_yaml = config_generator.transform(destination_type, profiles_config)

@@ -35,6 +35,7 @@ from normalization.transform_catalog.table_name_registry import TableNameRegistr
 
 ORACLE_MAX_TABLE_LENGTH = 30
 
+
 @pytest.fixture(scope="function", autouse=True)
 def before_tests(request):
     # This makes the test run whether it is executed from the tests folder (with pytest/gradle)
@@ -138,12 +139,7 @@ def read_json(input_path: str, apply_function=(lambda x: x)):
 @pytest.mark.parametrize(
     "json_path, expected_postgres, expected_bigquery, expected_oracle",
     [
-        (
-            ["parent", "child"],
-            "parent_child",
-            "parent_child",
-            "PARE__HILD"
-        ),
+        (["parent", "child"], "parent_child", "parent_child", "PARE__HILD"),
         (
             ["The parent stream has a nested column with a", "short_substream_name"],
             "the_parent_stream_ha___short_substream_name",
@@ -154,7 +150,7 @@ def read_json(input_path: str, apply_function=(lambda x: x)):
             ["The parent stream has a nested column with a", "substream with a rather long name"],
             "the_parent_stream_ha__th_a_rather_long_name",
             "The_parent_stream_has_a_nested_column_with_a_substream_with_a_rather_long_name",
-            "THE___NAME"
+            "THE___NAME",
         ),
     ],
 )
@@ -200,8 +196,7 @@ def test_get_simple_table_name(json_path: List[str], expected_postgres: str, exp
         ),
     ],
 )
-def test_get_nested_hashed_table_name(json_path: List[str], expected_postgres: str, expected_bigquery: str,
-                                      expected_oracle: str):
+def test_get_nested_hashed_table_name(json_path: List[str], expected_postgres: str, expected_bigquery: str, expected_oracle: str):
     """
     Checks how to generate a unique name with strategies of combining all fields into a single table name for the user to (somehow)
     identify and recognize what data is available in there.
