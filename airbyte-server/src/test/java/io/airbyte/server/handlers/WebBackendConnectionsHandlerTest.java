@@ -55,10 +55,10 @@ import io.airbyte.api.model.JobReadList;
 import io.airbyte.api.model.JobStatus;
 import io.airbyte.api.model.JobWithAttemptsRead;
 import io.airbyte.api.model.NamespaceDefinitionType;
-import io.airbyte.api.model.OperationCreateOrUpdate;
 import io.airbyte.api.model.OperationRead;
 import io.airbyte.api.model.OperationReadList;
 import io.airbyte.api.model.OperationUpdate;
+import io.airbyte.api.model.ResourceRequirements;
 import io.airbyte.api.model.SourceDiscoverSchemaRead;
 import io.airbyte.api.model.SourceIdRequestBody;
 import io.airbyte.api.model.SourceRead;
@@ -69,6 +69,7 @@ import io.airbyte.api.model.WebBackendConnectionRead;
 import io.airbyte.api.model.WebBackendConnectionReadList;
 import io.airbyte.api.model.WebBackendConnectionRequestBody;
 import io.airbyte.api.model.WebBackendConnectionUpdate;
+import io.airbyte.api.model.WebBackendOperationCreateOrUpdate;
 import io.airbyte.api.model.WorkspaceIdRequestBody;
 import io.airbyte.commons.enums.Enums;
 import io.airbyte.config.DestinationConnection;
@@ -86,6 +87,7 @@ import io.airbyte.server.helpers.DestinationHelpers;
 import io.airbyte.server.helpers.SourceDefinitionHelpers;
 import io.airbyte.server.helpers.SourceHelpers;
 import io.airbyte.validation.json.JsonValidationException;
+import io.airbyte.workers.WorkerUtils;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.time.Instant;
@@ -184,10 +186,15 @@ class WebBackendConnectionsHandlerTest {
         .schedule(connectionRead.getSchedule())
         .source(sourceRead)
         .destination(destinationRead)
-        .operations(operationReadList)
+        .operations(operationReadList.getOperations())
         .latestSyncJobCreatedAt(now.getEpochSecond())
         .latestSyncJobStatus(JobStatus.SUCCEEDED)
-        .isSyncing(false);
+        .isSyncing(false)
+        .resourceRequirements(new ResourceRequirements()
+            .cpuRequest(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getCpuRequest())
+            .cpuLimit(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getCpuLimit())
+            .memoryRequest(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getMemoryRequest())
+            .memoryLimit(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getMemoryLimit()));
 
     final AirbyteCatalog modifiedCatalog = ConnectionHelpers.generateBasicApiCatalog();
 
@@ -213,7 +220,12 @@ class WebBackendConnectionsHandlerTest {
         .operations(expected.getOperations())
         .latestSyncJobCreatedAt(expected.getLatestSyncJobCreatedAt())
         .latestSyncJobStatus(expected.getLatestSyncJobStatus())
-        .isSyncing(expected.getIsSyncing());
+        .isSyncing(expected.getIsSyncing())
+        .resourceRequirements(new ResourceRequirements()
+            .cpuRequest(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getCpuRequest())
+            .cpuLimit(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getCpuLimit())
+            .memoryRequest(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getMemoryRequest())
+            .memoryLimit(WorkerUtils.DEFAULT_RESOURCE_REQUIREMENTS.getMemoryLimit()));
 
     when(schedulerHandler.resetConnection(any())).thenReturn(new JobInfoRead().job(new JobRead().status(JobStatus.SUCCEEDED)));
   }
@@ -278,11 +290,16 @@ class WebBackendConnectionsHandlerTest {
 
     final ConnectionSchedule schedule = new ConnectionSchedule().units(1L).timeUnit(TimeUnitEnum.MINUTES);
 
+    final UUID newSourceId = UUID.randomUUID();
+    final UUID newDestinationId = UUID.randomUUID();
     final UUID newOperationId = UUID.randomUUID();
     final WebBackendConnectionCreate input = new WebBackendConnectionCreate()
+        .name("testConnectionCreate")
         .namespaceDefinition(Enums.convertTo(standardSync.getNamespaceDefinition(), NamespaceDefinitionType.class))
         .namespaceFormat(standardSync.getNamespaceFormat())
         .prefix(standardSync.getPrefix())
+        .sourceId(newSourceId)
+        .destinationId(newDestinationId)
         .operationIds(List.of(newOperationId))
         .status(ConnectionStatus.INACTIVE)
         .schedule(schedule)
@@ -291,9 +308,12 @@ class WebBackendConnectionsHandlerTest {
     final List<UUID> operationIds = List.of(newOperationId);
 
     final ConnectionCreate expected = new ConnectionCreate()
+        .name("testConnectionCreate")
         .namespaceDefinition(Enums.convertTo(standardSync.getNamespaceDefinition(), NamespaceDefinitionType.class))
         .namespaceFormat(standardSync.getNamespaceFormat())
         .prefix(standardSync.getPrefix())
+        .sourceId(newSourceId)
+        .destinationId(newDestinationId)
         .operationIds(operationIds)
         .status(ConnectionStatus.INACTIVE)
         .schedule(schedule)
@@ -344,9 +364,29 @@ class WebBackendConnectionsHandlerTest {
   }
 
   @Test
-  public void testForCompleteness() {
+  public void testForConnectionCreateCompleteness() {
     final Set<String> handledMethods =
-        Set.of("schedule", "connectionId", "syncCatalog", "namespaceDefinition", "namespaceFormat", "prefix", "status", "operationIds");
+        Set.of("name", "namespaceDefinition", "namespaceFormat", "prefix", "sourceId", "destinationId", "operationIds", "syncCatalog", "schedule",
+            "status", "resourceRequirements");
+
+    final Set<String> methods = Arrays.stream(ConnectionCreate.class.getMethods())
+        .filter(method -> method.getReturnType() == ConnectionCreate.class)
+        .map(Method::getName)
+        .collect(Collectors.toSet());
+
+    final String message =
+        "If this test is failing, it means you added a field to ConnectionCreate!\nCongratulations, but you're not done yet...\n"
+            + "\tYou should update WebBackendConnectionsHandler::toConnectionCreate\n"
+            + "\tand ensure that the field is tested in WebBackendConnectionsHandlerTest::testToConnectionCreate\n"
+            + "Then you can add the field name here to make this test pass. Cheers!";
+    assertEquals(handledMethods, methods, message);
+  }
+
+  @Test
+  public void testForConnectionUpdateCompleteness() {
+    final Set<String> handledMethods =
+        Set.of("schedule", "connectionId", "syncCatalog", "namespaceDefinition", "namespaceFormat", "prefix", "status", "operationIds",
+            "resourceRequirements");
 
     final Set<String> methods = Arrays.stream(ConnectionUpdate.class.getMethods())
         .filter(method -> method.getReturnType() == ConnectionUpdate.class)
@@ -386,6 +426,7 @@ class WebBackendConnectionsHandlerTest {
             .syncCatalog(expected.getSyncCatalog())
             .status(expected.getStatus())
             .schedule(expected.getSchedule()));
+    when(operationsHandler.listOperationsForConnection(any())).thenReturn(operationReadList);
 
     WebBackendConnectionRead connectionRead = wbHandler.webBackendUpdateConnection(updateBody);
 
@@ -398,7 +439,7 @@ class WebBackendConnectionsHandlerTest {
 
   @Test
   void testUpdateConnectionWithOperations() throws JsonValidationException, ConfigNotFoundException, IOException {
-    final OperationCreateOrUpdate operationCreateOrUpdate = new OperationCreateOrUpdate()
+    final WebBackendOperationCreateOrUpdate operationCreateOrUpdate = new WebBackendOperationCreateOrUpdate()
         .name("Test Operation")
         .operationId(connectionRead.getOperationIds().get(0));
     final OperationUpdate operationUpdate = WebBackendConnectionsHandler.toOperationUpdate(operationCreateOrUpdate);
@@ -430,6 +471,7 @@ class WebBackendConnectionsHandlerTest {
             .status(expected.getStatus())
             .schedule(expected.getSchedule()));
     when(operationsHandler.updateOperation(operationUpdate)).thenReturn(new OperationRead().operationId(operationUpdate.getOperationId()));
+    when(operationsHandler.listOperationsForConnection(any())).thenReturn(operationReadList);
     WebBackendConnectionRead actualConnectionRead = wbHandler.webBackendUpdateConnection(updateBody);
 
     assertEquals(connectionRead.getOperationIds(), actualConnectionRead.getOperationIds());
@@ -448,6 +490,7 @@ class WebBackendConnectionsHandlerTest {
         .syncCatalog(expectedWithNewSchema.getSyncCatalog())
         .withRefreshedCatalog(true);
 
+    when(operationsHandler.listOperationsForConnection(any())).thenReturn(operationReadList);
     when(connectionsHandler.getConnection(new ConnectionIdRequestBody().connectionId(expected.getConnectionId()))).thenReturn(
         new ConnectionRead().connectionId(expected.getConnectionId()));
     when(connectionsHandler.updateConnection(any())).thenReturn(

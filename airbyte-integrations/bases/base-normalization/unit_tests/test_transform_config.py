@@ -150,6 +150,57 @@ class TestTransformConfig:
         assert expected == actual
         assert extract_schema(actual) == "AIRBYTE_SCHEMA"
 
+    def test_transform_mysql(self):
+        input = {
+            "type": "mysql5",
+            "host": "airbyte.io",
+            "port": 5432,
+            "database": "my_db",
+            "schema": "public",
+            "username": "a user",
+            "password": "password1234",
+        }
+
+        actual = TransformConfig().transform_mysql(input)
+        expected = {
+            "type": "mysql5",
+            "server": "airbyte.io",
+            "port": 5432,
+            "schema": "my_db",
+            "database": "my_db",
+            "username": "a user",
+            "password": "password1234",
+        }
+
+        assert expected == actual
+        # DBT schema is equivalent to MySQL database
+        assert extract_schema(actual) == "my_db"
+
+    def test_transform_oracle(self):
+        input = {
+            "host": "localhost",
+            "port": 1521,
+            "username": "a user",
+            "password": "password123",
+            "database": "my_db",
+            "schema": "xe",
+        }
+
+        actual = TransformConfig().transform_oracle(input)
+        expected = {
+            "type": "oracle",
+            "dbname": "my_db",
+            "host": "localhost",
+            "pass": "password123",
+            "port": 1521,
+            "schema": "xe",
+            "threads": 32,
+            "user": "a user",
+        }
+
+        assert expected == actual
+        assert extract_schema(actual) == "xe"
+
     # test that the full config is produced. this overlaps slightly with the transform_postgres test.
     def test_transform(self):
         input = {

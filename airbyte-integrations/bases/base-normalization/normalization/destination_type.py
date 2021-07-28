@@ -31,6 +31,7 @@ class DestinationType(Enum):
     POSTGRES = "postgres"
     REDSHIFT = "redshift"
     SNOWFLAKE = "snowflake"
+    MYSQL = "mysql"
     ORACLE = "oracle"
 
     @classmethod

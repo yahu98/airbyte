@@ -39,6 +39,7 @@ import io.airbyte.protocol.models.Field;
 import io.airbyte.protocol.models.JsonSchemaPrimitive;
 import io.airbyte.protocol.models.SyncMode;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +52,27 @@ public abstract class SourceComprehensiveTest extends SourceAbstractTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SourceComprehensiveTest.class);
 
-  private final String TEST_COLUMN_NAME = "test_column";
   private final List<TestDataHolder> testDataHolders = new ArrayList<>();
+
+  /**
+   * The column name will be used for a PK column in the test tables. Override it if default name is
+   * not valid for your source.
+   *
+   * @return Id column name
+   */
+  protected String getIdColumnName() {
+    return "id";
+  }
+
+  /**
+   * The column name will be used for a test column in the test tables. Override it if default name is
+   * not valid for your source.
+   *
+   * @return Test column name
+   */
+  protected String getTestColumnName() {
+    return "test_column";
+  }
 
   /**
    * Setup the test database. All tables and data described in the registered tests will be put there.
@@ -73,6 +93,14 @@ public abstract class SourceComprehensiveTest extends SourceAbstractTest {
   }
 
   /**
+   * Provide a source namespace. It's allocated place for table creation. It also known ask "Database
+   * Schema" or "Dataset"
+   *
+   * @return source name space
+   */
+  protected abstract String getNameSpace();
+
+  /**
    * The test checks that connector can fetch prepared data without failure.
    */
   @Test
@@ -80,7 +108,6 @@ public abstract class SourceComprehensiveTest extends SourceAbstractTest {
     ConfiguredAirbyteCatalog catalog = getConfiguredCatalog();
     List<AirbyteMessage> allMessages = runRead(catalog);
     final List<AirbyteMessage> recordMessages = allMessages.stream().filter(m -> m.getType() == Type.RECORD).collect(Collectors.toList());
-
     Map<String, List<String>> expectedValues = new HashMap<>();
     testDataHolders.forEach(testDataHolder -> {
       if (!testDataHolder.getExpectedValues().isEmpty())
@@ -91,22 +118,26 @@ public abstract class SourceComprehensiveTest extends SourceAbstractTest {
       String streamName = msg.getRecord().getStream();
       List<String> expectedValuesForStream = expectedValues.get(streamName);
       if (expectedValuesForStream != null) {
-        String value = getValueFromJsonNode(msg.getRecord().getData().get(TEST_COLUMN_NAME));
+        String value = getValueFromJsonNode(msg.getRecord().getData().get(getTestColumnName()));
         assertTrue(expectedValuesForStream.contains(value),
             "Returned value '" + value + "' by streamer " + streamName + " should be in the expected list: " + expectedValuesForStream);
         expectedValuesForStream.remove(value);
       }
     });
 
-    expectedValues.forEach((streamName, values) -> {
-      assertTrue(values.isEmpty(), "The streamer " + streamName + " should return all expected values. Missing values: " + values);
-    });
+    expectedValues.forEach((streamName, values) -> assertTrue(values.isEmpty(),
+        "The streamer " + streamName + " should return all expected values. Missing values: " + values));
   }
 
   private String getValueFromJsonNode(JsonNode jsonNode) {
-    String value = (jsonNode != null ? jsonNode.asText() : null);
-    value = (value != null && value.equals("null") ? null : value);
-    return value;
+    if (jsonNode != null) {
+      String nodeText = jsonNode.asText();
+      String nodeString = jsonNode.toString();
+      String value = (nodeText != null && !nodeText.equals("") ? nodeText : nodeString);
+      value = (value != null && value.equals("null") ? null : value);
+      return value;
+    } else
+      return null;
   }
 
   /**
@@ -145,15 +176,15 @@ public abstract class SourceComprehensiveTest extends SourceAbstractTest {
             .stream()
             .map(test -> new ConfiguredAirbyteStream()
                 .withSyncMode(SyncMode.INCREMENTAL)
-                .withCursorField(Lists.newArrayList("id"))
+                .withCursorField(Lists.newArrayList(getIdColumnName()))
                 .withDestinationSyncMode(DestinationSyncMode.APPEND)
                 .withStream(CatalogHelpers.createAirbyteStream(
                     String.format("%s", test.getNameWithTestPrefix()),
-                    String.format("%s", config.get("database").asText()),
-                    Field.of("id", JsonSchemaPrimitive.NUMBER),
-                    Field.of(TEST_COLUMN_NAME, test.getAirbyteType()))
+                    String.format("%s", getNameSpace()),
+                    Field.of(getIdColumnName(), JsonSchemaPrimitive.NUMBER),
+                    Field.of(getTestColumnName(), test.getAirbyteType()))
                     .withSourceDefinedCursor(true)
-                    .withSourceDefinedPrimaryKey(List.of(List.of("id")))
+                    .withSourceDefinedPrimaryKey(List.of(List.of(getIdColumnName())))
                     .withSupportedSyncModes(
                         Lists.newArrayList(SyncMode.FULL_REFRESH, SyncMode.INCREMENTAL))))
             .collect(Collectors.toList()));
@@ -169,6 +200,37 @@ public abstract class SourceComprehensiveTest extends SourceAbstractTest {
   public void addDataTypeTestData(TestDataHolder test) {
     testDataHolders.add(test);
     test.setTestNumber(testDataHolders.stream().filter(t -> t.getSourceType().equals(test.getSourceType())).count());
+    test.setNameSpace(getNameSpace());
+    test.setIdColumnName(getIdColumnName());
+    test.setTestColumnName(getTestColumnName());
+  }
+
+  private String formatCollection(Collection<String> collection) {
+    return collection.stream().map(s -> "`" + s + "`").collect(Collectors.joining(", "));
+  }
+
+  /**
+   * Builds a table with all registered test cases with values using Markdown syntax (can be used in
+   * the github).
+   *
+   * @return formatted list of test cases
+   */
+  public String getMarkdownTestTable() {
+    StringBuilder table = new StringBuilder()
+        .append("|**Data Type**|**Insert values**|**Expected values**|**Comment**|**Common test result**|\n")
+        .append("|----|----|----|----|----|\n");
+
+    testDataHolders.forEach(test -> table.append(String.format("| %s | %s | %s | %s | %s |\n",
+        test.getSourceType(),
+        formatCollection(test.getValues()),
+        formatCollection(test.getExpectedValues()),
+        "",
+        "Ok")));
+    return table.toString();
+  }
+
+  protected void printMarkdownTestTable() {
+    LOGGER.info(getMarkdownTestTable());
   }
 
 }

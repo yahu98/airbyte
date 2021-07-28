@@ -39,6 +39,7 @@ class DestinationType(Enum):
     postgres = "postgres"
     redshift = "redshift"
     snowflake = "snowflake"
+    mysql = "mysql"
     oracle = "oracle"
 
 
@@ -83,6 +84,7 @@ class TransformConfig:
             DestinationType.postgres.value: self.transform_postgres,
             DestinationType.redshift.value: self.transform_redshift,
             DestinationType.snowflake.value: self.transform_snowflake,
+            DestinationType.mysql.value: self.transform_mysql,
             DestinationType.oracle.value: self.transform_oracle,
         }[integration_type.value](config)
 
@@ -168,6 +170,24 @@ class TransformConfig:
         return dbt_config
 
     @staticmethod
+    def transform_mysql(config: Dict[str, Any]):
+        print("transform_mysql")
+        # https://github.com/dbeatty10/dbt-mysql#configuring-your-profile
+        dbt_config = {
+            # MySQL 8.x - type: mysql
+            # MySQL 5.x - type: mysql5
+            "type": config.get("type", "mysql"),
+            "server": config["host"],
+            "port": config["port"],
+            # DBT schema is equivalent to MySQL database
+            "schema": config["database"],
+            "database": config["database"],
+            "username": config["username"],
+            "password": config.get("password", ""),
+        }
+        return dbt_config
+
+    @staticmethod
     def transform_oracle(config: Dict[str, Any]):
         print("transform_oracle")
         # https://github.com/techindicium/dbt-oracle#configure-your-profile
@@ -177,9 +197,9 @@ class TransformConfig:
             "user": config["username"],
             "pass": config["password"],
             "port": config["port"],
-            "dbname": config["database"],
+            "dbname": config["sid"],
             "schema": config["schema"],
-            "threads": 32,
+            "threads": 4,
         }
         return dbt_config
 
