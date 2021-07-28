@@ -14,6 +14,6 @@ select
     usd,
     _airbyte_emitted_at,
     _airbyte_exchange_rate_hashid
-from "postgres"._airbyte_test_normalization."exchange_rate_ab3"
+from "postgres"._airbyte_test_normalization."exchange_rate_ab3" as table_alias
 -- exchange_rate from "postgres".test_normalization._airbyte_raw_exchange_rate
   );

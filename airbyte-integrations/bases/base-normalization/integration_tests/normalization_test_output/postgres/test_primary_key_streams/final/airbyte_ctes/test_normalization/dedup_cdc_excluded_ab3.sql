@@ -21,6 +21,6 @@ select
  as 
     varchar
 )) as _airbyte_dedup_cdc_excluded_hashid
-from "postgres"._airbyte_test_normalization."dedup_cdc_excluded_ab2"
+from "postgres"._airbyte_test_normalization."dedup_cdc_excluded_ab2" as table_alias
 -- dedup_cdc_excluded
   );

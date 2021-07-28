@@ -129,30 +129,30 @@ class DbtIntegrationTest(object):
         port = self.find_free_port()
         config = {
             "host": "localhost",
-            "port": port,
+            "port": 1521, #port,
             "sid": "xe",
             "username": "system",
-            "password": "oracle",
-            "schema": " system"
+            "password": "testpassword",
+            "schema": " users"
         }
-        commands = [
-            "docker",
-            "run",
-            "--rm",
-            "--name",
-            f"{self.container_prefix}_oracle",
-            "-e",
-            "ORACLE_ALLOW_REMOTE=true",
-            "-e",
-            "RELAX_SECURITY=1",
-            "-p",
-            f"{config['port']}:1521",
-            "-d",
-            "epiclabs/docker-oracle-xe-11g",
-        ]
-        print("Executing: ", " ".join(commands))
-        subprocess.call(commands)
-        time.sleep(120)
+        # commands = [
+        #     "docker",
+        #     "run",
+        #     "--rm",
+        #     "--name",
+        #     f"{self.container_prefix}_oracle",
+        #     "-e",
+        #     "ORACLE_ALLOW_REMOTE=true",
+        #     "-e",
+        #     "RELAX_SECURITY=1",
+        #     "-p",
+        #     f"{config['port']}:1521",
+        #     "-d",
+        #     "epiclabs/docker-oracle-xe-11g",
+        # ]
+        # print("Executing: ", " ".join(commands))
+        # subprocess.call(commands)
+        # time.sleep(120)
 
 
         if not os.path.exists("../secrets"):
@@ -206,6 +206,8 @@ class DbtIntegrationTest(object):
             }
         elif destination_type.value == DestinationType.MYSQL.value:
             profiles_config["database"] = self.target_schema
+        elif destination_type.value == DestinationType.ORACLE.value:
+            profiles_config["target"] = "dev"
         else:
             profiles_config["schema"] = self.target_schema
         profiles_yaml = config_generator.transform(destination_type, profiles_config)

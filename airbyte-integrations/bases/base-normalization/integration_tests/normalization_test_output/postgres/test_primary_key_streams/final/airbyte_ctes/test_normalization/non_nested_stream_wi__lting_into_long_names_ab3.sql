@@ -15,6 +15,6 @@ select
  as 
     varchar
 )) as _airbyte_non_nested___nto_long_names_hashid
-from "postgres"._airbyte_test_normalization."non_nested_stream_wi__lting_into_long_names_ab2"
+from "postgres"._airbyte_test_normalization."non_nested_stream_wi__lting_into_long_names_ab2" as table_alias
 -- non_nested_stream_wi__lting_into_long_names
   );

@@ -25,6 +25,6 @@ select
  as 
     varchar
 )) as _airbyte_dedup_exchange_rate_hashid
-from "postgres"._airbyte_test_normalization."dedup_exchange_rate_ab2"
+from "postgres"._airbyte_test_normalization."dedup_exchange_rate_ab2" as table_alias
 -- dedup_exchange_rate
   );

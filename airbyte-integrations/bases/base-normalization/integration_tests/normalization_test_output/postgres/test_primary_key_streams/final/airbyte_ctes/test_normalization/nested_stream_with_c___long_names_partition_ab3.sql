@@ -17,6 +17,6 @@ select
  as 
     varchar
 )) as _airbyte_partition_hashid
-from "postgres"._airbyte_test_normalization."nested_stream_with_c___long_names_partition_ab2"
+from "postgres"._airbyte_test_normalization."nested_stream_with_c___long_names_partition_ab2" as table_alias
 -- partition at nested_stream_with_complex_columns_resulting_into_long_names/partition
   );

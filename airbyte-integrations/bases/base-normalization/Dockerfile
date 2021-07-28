@@ -15,6 +15,7 @@ RUN pip install .
 WORKDIR /airbyte/normalization_code
 RUN pip install .
 RUN pip install git+https://github.com/dbeatty10/dbt-mysql@96655ea9f7fca7be90c9112ce8ffbb5aac1d3716#egg=dbt-mysql
+RUN pip install dbt-oracle==0.4.3
 
 WORKDIR /airbyte/normalization_code/dbt-template/
 # Download external dbt dependencies

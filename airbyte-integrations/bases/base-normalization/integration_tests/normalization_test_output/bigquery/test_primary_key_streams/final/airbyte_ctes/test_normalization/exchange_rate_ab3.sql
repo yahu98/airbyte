@@ -23,6 +23,6 @@ select
 ), '')) as 
     string
 ))) as _airbyte_exchange_rate_hashid
-from `dataline-integration-testing`._airbyte_test_normalization.`exchange_rate_ab2`
+from `dataline-integration-testing`._airbyte_test_normalization.`exchange_rate_ab2` as table_alias
 -- exchange_rate;
 

@@ -19,6 +19,6 @@ select
 ), '')) as 
     string
 ))) as _airbyte_dedup_cdc_excluded_hashid
-from `dataline-integration-testing`._airbyte_test_normalization.`dedup_cdc_excluded_ab2`
+from `dataline-integration-testing`._airbyte_test_normalization.`dedup_cdc_excluded_ab2` as table_alias
 -- dedup_cdc_excluded;
 

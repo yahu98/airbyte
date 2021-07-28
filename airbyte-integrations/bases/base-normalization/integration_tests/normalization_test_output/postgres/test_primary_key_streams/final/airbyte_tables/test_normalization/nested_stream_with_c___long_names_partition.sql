@@ -10,6 +10,6 @@ select
     "DATA",
     _airbyte_emitted_at,
     _airbyte_partition_hashid
-from "postgres"._airbyte_test_normalization."nested_stream_with_c___long_names_partition_ab3"
+from "postgres"._airbyte_test_normalization."nested_stream_with_c___long_names_partition_ab3" as table_alias
 -- partition at nested_stream_with_complex_columns_resulting_into_long_names/partition from "postgres".test_normalization."nested_stream_with_c__lting_into_long_names"
   );
