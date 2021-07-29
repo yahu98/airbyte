@@ -26,12 +26,12 @@
 from typing import Any, List, Mapping, Tuple
 
 from airbyte_cdk.logger import AirbyteLogger
-from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 
 from .common import Config, SourceContext
+from .report_streams import DisplayReportStream
 from .streams import (
     Profiles,
     SponsoredDisplayAdGroups,
@@ -57,25 +57,25 @@ class SourceAmazonAds(AbstractSource):
         :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
         """
         config = Config(**config)
-        next(Profiles(config, authenticator=self._make_authenticator(config)).read_records(sync_mode=SyncMode.full_refresh))
+        Profiles(config, authenticator=self._make_authenticator(config)).fill_context()
         return True, None
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         """
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
-        # import http.client as http_client
-        # http_client.HTTPConnection.debuglevel = 1
-
         config = Config(**config)
         auth = self._make_authenticator(config)
+        profiles_stream = Profiles(config, context=self.ctx, authenticator=auth)
+        profiles_stream.fill_context()
         return [
-            Profiles(config, context=self.ctx, authenticator=auth),
+            profiles_stream,
             SponsoredDisplayCampaigns(config, context=self.ctx, authenticator=auth),
             SponsoredDisplayAdGroups(config, context=self.ctx, authenticator=auth),
             SponsoredDisplayProductAds(config, context=self.ctx, authenticator=auth),
             SponsoredDisplayTargetings(config, context=self.ctx, authenticator=auth),
             SponsoredDisplayCreatives(config, context=self.ctx, authenticator=auth),
+            DisplayReportStream(config, context=self.ctx, authenticator=auth),
         ]
 
     @staticmethod

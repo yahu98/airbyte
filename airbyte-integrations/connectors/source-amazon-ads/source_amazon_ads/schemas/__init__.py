@@ -21,15 +21,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+from .common import JSModel, MetricsReport
 from .profile import Profile, Types
 from .sponsored_display import DisplayAdGroup, DisplayCampaign, DisplayCreatives, DisplayProductAds, DisplayTargeting
 
 __all__ = [
     "Types",
     "Profile",
+    "JSModel",
     "DisplayAdGroup",
     "DisplayCampaign",
     "DisplayCreatives",
     "DisplayProductAds",
     "DisplayTargeting",
+    "MetricsReport",
 ]

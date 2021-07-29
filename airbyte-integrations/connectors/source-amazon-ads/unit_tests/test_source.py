@@ -23,12 +23,27 @@
 #
 
 import responses
-from airbyte_cdk.models import AirbyteMessage, Type
+from airbyte_cdk.models import AirbyteConnectionStatus, AirbyteMessage, Status, Type
 from jsonschema import Draft4Validator
 from source_amazon_ads import SourceAmazonAds
 
 
+def setup_responses(profiles_response=[]):
+    responses.add(
+        responses.POST,
+        "https://api.amazon.com/auth/o2/token",
+        json={"access_token": "alala", "expires_in": 10},
+    )
+    responses.add(
+        responses.GET,
+        "https://advertising-api.amazon.com/v2/profiles",
+        json=profiles_response,
+    )
+
+
+@responses.activate
 def test_discover(test_config):
+    setup_responses()
     source = SourceAmazonAds()
     catalog = source.discover(None, test_config)
     catalog = AirbyteMessage(type=Type.CATALOG, catalog=catalog).dict(exclude_unset=True)
@@ -38,17 +53,8 @@ def test_discover(test_config):
 
 
 @responses.activate
-def test_check(test_config, profiles_response):
+def test_check(test_config):
+    setup_responses()
     source = SourceAmazonAds()
-    responses.add(
-        responses.POST,
-        "https://api.amazon.com/auth/o2/token",
-        json={"access_token": "alala", "expires_in": 10},
-    )
-    responses.add(
-        responses.GET,
-        "https://advertising-api.amazon.com/v2/profiles",
-        body=profiles_response,
-    )
-    assert source.check(None, test_config)
+    assert source.check(None, test_config) == AirbyteConnectionStatus(status=Status.SUCCEEDED)
     assert len(responses.calls) == 2

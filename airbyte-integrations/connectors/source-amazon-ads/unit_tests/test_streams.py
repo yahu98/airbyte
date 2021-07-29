@@ -85,14 +85,14 @@ def setup_responses(
 
 @responses.activate
 def test_streams_profile(test_config, profiles_response):
+    setup_responses(profiles_response=profiles_response)
+
     source = SourceAmazonAds()
     streams = source.streams(test_config)
-    assert len(streams) == 6
+    assert len(streams) == 7
     profile_stream = streams[0]
     assert profile_stream.name == "profiles"
     schema = profile_stream.get_json_schema()
-    setup_responses(profiles_response=profiles_response)
-
     records = profile_stream.read_records(SyncMode.full_refresh)
     records = [r for r in records]
     assert len(responses.calls) == 2
@@ -106,14 +106,14 @@ def test_streams_profile(test_config, profiles_response):
 
 @responses.activate
 def test_streams_campaigns_one_vendor(test_config, profiles_response, campaigns_response):
+    setup_responses(profiles_response=profiles_response)
+
     source = SourceAmazonAds()
     streams = source.streams(test_config)
     profile_stream = streams[0]
     assert profile_stream.name == "profiles"
     campaigns_stream = streams[1]
     assert campaigns_stream.name == "sponsored_display_campaigns"
-    setup_responses(profiles_response=profiles_response)
-
     responses.add(
         responses.GET,
         "https://advertising-api.amazon.com/sd/campaigns",
@@ -129,20 +129,20 @@ def test_streams_campaigns_one_vendor(test_config, profiles_response, campaigns_
 
 @responses.activate
 def test_streams_campaigns_4_vendors(test_config, profiles_response, campaigns_response):
+    profiles_response = loads(profiles_response)
+    for profile in profiles_response:
+        profile["accountInfo"]["type"] = "vendor"
+    profiles_response = dumps(profiles_response)
+    setup_responses(profiles_response=profiles_response, campaigns_response=campaigns_response)
+
     source = SourceAmazonAds()
     streams = source.streams(test_config)
     profile_stream = streams[0]
     assert profile_stream.name == "profiles"
     campaigns_stream = streams[1]
-    profiles_response = loads(profiles_response)
-    for profile in profiles_response:
-        profile["accountInfo"]["type"] = "vendor"
-    profiles_response = dumps(profiles_response)
     assert campaigns_stream.name == "sponsored_display_campaigns"
-    setup_responses(profiles_response=profiles_response, campaigns_response=campaigns_response)
     records = profile_stream.read_records(SyncMode.full_refresh)
     profile_records = [r for r in records]
-
     records = campaigns_stream.read_records(SyncMode.full_refresh)
     campaigns_records = [r for r in records]
     assert len(campaigns_records) == len(profile_records) * len(loads(campaigns_response))
@@ -150,23 +150,22 @@ def test_streams_campaigns_4_vendors(test_config, profiles_response, campaigns_r
 
 @pytest.mark.parametrize(
     ("page_size"),
-    [1, 2, 5, 100],
+    [1, 2, 5, 1000000],
 )
 @responses.activate
 def test_streams_campaigns_pagination(mocker, test_config, profiles_response, campaigns_response, page_size):
     mocker.patch("source_amazon_ads.streams.PaginationStream.PAGE_SIZE", page_size)
+    profiles_response = loads(profiles_response)
+    for profile in profiles_response:
+        profile["accountInfo"]["type"] = "vendor"
+    profiles_response = dumps(profiles_response)
+    setup_responses(profiles_response=profiles_response)
+
     source = SourceAmazonAds()
     streams = source.streams(test_config)
     campaigns_stream = streams[1]
     profile_stream = streams[0]
     assert profile_stream.name == "profiles"
-
-    profiles_response = loads(profiles_response)
-    for profile in profiles_response:
-        profile["accountInfo"]["type"] = "vendor"
-    profiles_response = dumps(profiles_response)
-
-    setup_responses(profiles_response=profiles_response)
     campaigns = loads(campaigns_response)
 
     def campaigns_paginated_response_cb(request):
@@ -203,11 +202,6 @@ def test_streams_campaigns_pagination(mocker, test_config, profiles_response, ca
 def test_streams_adgroup(
     test_config, stream_name, endpoint, profiles_response, adgroups_response, creatives_response, targeting_response, product_ads_response
 ):
-    source = SourceAmazonAds()
-    streams = source.streams(test_config)
-    profile_stream = streams[0]
-    assert profile_stream.name == "profiles"
-    test_stream = [stream for stream in streams if stream.name == stream_name][0]
     setup_responses(
         profiles_response=profiles_response,
         adgroups_response=adgroups_response,
@@ -216,6 +210,11 @@ def test_streams_adgroup(
         product_ads_response=product_ads_response,
     )
 
+    source = SourceAmazonAds()
+    streams = source.streams(test_config)
+    profile_stream = streams[0]
+    assert profile_stream.name == "profiles"
+    test_stream = [stream for stream in streams if stream.name == stream_name][0]
     _ = [r for r in profile_stream.read_records(SyncMode.full_refresh)]
 
     records = test_stream.read_records(SyncMode.full_refresh)

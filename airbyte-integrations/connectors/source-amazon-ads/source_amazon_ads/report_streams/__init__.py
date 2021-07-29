@@ -21,23 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+from .display_report import DisplayReportStream
 
-
-from setuptools import find_packages, setup
-
-MAIN_REQUIREMENTS = ["airbyte-cdk", "requests_oauthlib==1.3.0", "pytz==2021.1"]
-
-TEST_REQUIREMENTS = ["pytest~=6.1", "pytest-mock", "source-acceptance-test", "jsonschema", "responses", "freezegun"]
-
-setup(
-    name="source_amazon_ads",
-    description="Source implementation for Amazon Ads.",
-    author="Airbyte",
-    author_email="contact@airbyte.io",
-    packages=find_packages(),
-    install_requires=MAIN_REQUIREMENTS,
-    package_data={"": ["*.json", "schemas/*.json", "schemas/shared/*.json"]},
-    extras_require={
-        "tests": TEST_REQUIREMENTS,
-    },
-)
+__all__ = ["DisplayReportStream"]

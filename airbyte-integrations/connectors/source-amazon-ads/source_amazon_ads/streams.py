@@ -22,15 +22,16 @@
 # SOFTWARE.
 #
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from json import dumps, loads
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 import requests
+from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.http import HttpStream
 
-from .common import PageToken, SourceContext
-from .schemas import DisplayAdGroup, DisplayCampaign, DisplayCreatives, DisplayProductAds, DisplayTargeting, Profile, Types
+from .common import URL_BASE, PageToken, SourceContext
+from .schemas import DisplayAdGroup, DisplayCampaign, DisplayCreatives, DisplayProductAds, DisplayTargeting, JSModel, Profile, Types
 
 
 # Basic full refresh stream
@@ -40,9 +41,14 @@ class AmazonAdsStream(HttpStream, ABC):
         self._config = config
         super().__init__(*args, **kwargs)
 
-    url_base = "https://advertising-api.amazon.com/"
-    # Pydantic model to represent json schema
-    model = None
+    url_base = URL_BASE
+
+    @property
+    @abstractmethod
+    def model(self) -> JSModel:
+        """
+        Pydantic model to represent json schema
+        """
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         """
@@ -91,6 +97,18 @@ class Profiles(AmazonAdsStream):
             profile_id_obj = self.model.parse_obj(r)
             self.ctx.profiles.append(profile_id_obj)
             yield r
+
+    def read_records(self, *args, **kvargs) -> Iterable[Mapping[str, Any]]:
+        if self.ctx.profiles:
+            yield from [profile.dict(exclude_unset=True) for profile in self.ctx.profiles]
+        else:
+            yield from super().read_records(*args, **kvargs)
+
+    def fill_context(self):
+        """
+        Fill profiles info for other streams in case of "profiles" stream havent been specified on catalog config
+        """
+        _ = [r for r in self.read_records(SyncMode.full_refresh)]
 
 
 class ContextStream(AmazonAdsStream):
