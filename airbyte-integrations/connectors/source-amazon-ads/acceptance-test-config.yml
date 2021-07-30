@@ -20,6 +20,16 @@ tests:
         extra_fields: no
         exact_order: no
         extra_records: yes
+    - config_path: "secrets/config.json"
+      configured_catalog_path: "integration_tests/no_profiles_catalog.json"
+      empty_streams:
+        [
+          "sponsored_display_campaigns",
+          "sponsored_display_ad_groups",
+          "sponsored_display_product_ads",
+          "sponsored_display_targetings",
+          "sponsored_display_creatives",
+        ]
   full_refresh:
     - config_path: "secrets/config.json"
       configured_catalog_path: "integration_tests/configured_catalog.json"
