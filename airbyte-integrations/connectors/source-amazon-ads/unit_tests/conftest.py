@@ -68,10 +68,3 @@ def targeting_response():
     return """
 [{"targetId":123,"adGroupId":321,"state":"enabled","expressionType":"manual","bid":1.5,"expression":{"type":"asinSameAs","value":"B0123456789"},"resolvedExpression":{"type":"views","values":{"type":"asinCategorySameAs","value":"B0123456789"}}}]
 """
-
-
-@fixture
-def creatives_response():
-    return """
-    [{"creativeId":0,"moderationStatus":"APPROVED","properties":{"contentType":"HL","headline":"hdline","brandLogo":{"assetId":"asset_id","assetVersion":"version","croppingCoordinates":{"top":1,"left":1,"width":2,"height":4}}}}]
-    """

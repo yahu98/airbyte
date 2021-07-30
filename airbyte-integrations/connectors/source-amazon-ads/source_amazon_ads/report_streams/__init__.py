@@ -21,6 +21,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+from .brands_report import SponsoredBrandsReportStream
 from .display_report import DisplayReportStream
+from .products_report import SponsoredProductsReportStream
 
-__all__ = ["DisplayReportStream"]
+__all__ = ["DisplayReportStream", "SponsoredProductsReportStream", "SponsoredBrandsReportStream"]

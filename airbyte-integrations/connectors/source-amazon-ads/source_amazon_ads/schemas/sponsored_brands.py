@@ -23,68 +23,56 @@
 #
 
 from decimal import Decimal
+from typing import Dict
 
-from .common import JSEnum, JSModel, State, Targeting
-
-
-class CostType(JSEnum):
-    CPC = "cpc"
-    VCPM = "vcpm"
+from .common import JSEnum, JSModel, State
 
 
-class Tactic(JSEnum):
-    T00020 = "T00020"
-    T00030 = "T00030"
+class BudgetType(JSEnum):
+    LIFETIME = "lifetime"
+    DAILY = "daily"
 
 
-class DeliveryProfile(JSEnum):
-    AS_SOON_AS_POSSIBLE = "as_soon_as_possible"
+class ServingStatus(JSEnum):
+    ASIN_NOT_BUYABLE = "asinNotBuyable"
+    BILLING_ERROR = "billingError"
+    ENDED = "ended"
+    LANDING_PAGE_NOT_AVAILABLE = "landingPageNotAvailable"
+    OUT_OF_BUDGET = "outOfBudget"
+    PAUSED = "paused"
+    PENDING_REVIEW = "pendingReview"
+    READY = "ready"
+    REJECTED = "rejected"
+    RUNNING = "running"
+    SCHEDULED = "scheduled"
+    TERMINATED = "terminated"
 
 
-class DisplayCampaign(JSModel):
+class AdFormat(JSEnum):
+    PRODUCT_COLLECTION = "productCollection"
+    VIDEO = "video"
+
+
+class BrandsCampaign(JSModel):
     campaignId: Decimal
     name: str
-    budgetType: str
+    tags: Dict[str, str]
     budget: Decimal
+    budgetType: BudgetType
     startDate: str
-    endDate: str = None
-    costType: CostType
+    endDate: str
     state: State
-    portfolioId: str = None
-    tactic: Tactic
-    deliveryProfile: DeliveryProfile
+    servingStatus: ServingStatus
+    brandEntityId: str
+    portfolioId: Decimal
+    landingPage: str
+    bidOptimization: bool = None
+    bidMultiplier: Decimal = None
+    adFormat: AdFormat
+    creative: str
 
 
-class BidOptimization(JSEnum):
-    CLICKS = "clicks"
-    CONVERSIONS = "conversions"
-    REACH = "reach"
-
-
-class ModerationStatus(JSEnum):
-    APPROVED = "APPROVED"
-    PENDING_REVIEW = "PENDING_REVIEW"
-    REJECTED = "REJECTED"
-
-
-class DisplayAdGroup(JSModel):
+class BrandsAdGroup(JSModel):
+    campaignId: Decimal
+    adGroupId: Decimal
     name: str
-    campaignId: Decimal
-    adGroupId: Decimal
-    defaultBid: Decimal
-    bidOptimization: BidOptimization
-    state: State
-    tactic: Tactic
-
-
-class DisplayProductAds(JSModel):
-    state: State
-    adId: Decimal
-    campaignId: Decimal
-    adGroupId: Decimal
-    asin: str
-    sku: str
-
-
-class DisplayTargeting(Targeting):
-    pass

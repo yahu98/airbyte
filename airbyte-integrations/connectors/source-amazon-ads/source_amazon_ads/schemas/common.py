@@ -22,6 +22,7 @@
 # SOFTWARE.
 #
 
+from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, Iterable, Type
 
@@ -63,3 +64,53 @@ class MetricsReport(JSModel):
     def generate_metric_model(cls, metric_list: Iterable[str]) -> JSModel:
         metrics_obj_model = create_model("MetricObjModel", **{f: (str, None) for f in metric_list}, __base__=JSModel)
         return create_model("MetricsModel", metric=(metrics_obj_model, None), __base__=cls)
+
+
+class State(JSEnum):
+    ENABLED = "enabled"
+    PAUSED = "paused"
+    ARCHIVED = "archived"
+
+
+class ExpressionType(JSEnum):
+    MANUAL = "manual"
+    AUTO = "auto"
+
+
+class Targeting(JSModel):
+    targetId: Decimal
+    adGroupId: Decimal
+    state: State
+    expressionType: ExpressionType
+    expression: str
+    resolvedExpression: str
+    bid: Decimal
+
+
+class KeywordsBase(JSModel):
+    keywordId: Decimal
+    campaignId: Decimal
+    adGroupId: Decimal
+    state: State
+    keywordText: str
+
+
+class MatchType(JSEnum):
+    EXACT = "exact"
+    PHRASE = "phrase"
+    BROAD = "broad"
+
+
+class Keywords(KeywordsBase):
+    nativeLanguageKeyword: str
+    matchType: MatchType
+    bid: Decimal
+
+
+class NegativeMatchType(JSEnum):
+    NEGATIVE_EXACT = "negativeExact"
+    NEGATIVE_PHRASE = "negativePhrase"
+
+
+class NegativeKeywords(KeywordsBase):
+    matchType: NegativeMatchType

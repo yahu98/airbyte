@@ -31,14 +31,22 @@ from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 
 from .common import Config, SourceContext
-from .report_streams import DisplayReportStream
+from .report_streams import DisplayReportStream, SponsoredBrandsReportStream, SponsoredProductsReportStream
 from .streams import (
     Profiles,
+    SponsoredBrandsAdGroups,
+    SponsoredBrandsCampaigns,
+    SponsoredBrandsKeywords,
     SponsoredDisplayAdGroups,
     SponsoredDisplayCampaigns,
-    SponsoredDisplayCreatives,
     SponsoredDisplayProductAds,
     SponsoredDisplayTargetings,
+    SponsoredProductAdGroups,
+    SponsoredProductAds,
+    SponsoredProductCampaigns,
+    SponsoredProductKeywords,
+    SponsoredProductNegativeKeywords,
+    SponsoredProductTargetings,
 )
 
 TOKEN_URL = "https://api.amazon.com/auth/o2/token"
@@ -74,8 +82,18 @@ class SourceAmazonAds(AbstractSource):
             SponsoredDisplayAdGroups(config, context=self.ctx, authenticator=auth),
             SponsoredDisplayProductAds(config, context=self.ctx, authenticator=auth),
             SponsoredDisplayTargetings(config, context=self.ctx, authenticator=auth),
-            SponsoredDisplayCreatives(config, context=self.ctx, authenticator=auth),
             DisplayReportStream(config, context=self.ctx, authenticator=auth),
+            SponsoredProductCampaigns(config, context=self.ctx, authenticator=auth),
+            SponsoredProductAdGroups(config, context=self.ctx, authenticator=auth),
+            SponsoredProductKeywords(config, context=self.ctx, authenticator=auth),
+            SponsoredProductNegativeKeywords(config, context=self.ctx, authenticator=auth),
+            SponsoredProductAds(config, context=self.ctx, authenticator=auth),
+            SponsoredProductTargetings(config, context=self.ctx, authenticator=auth),
+            SponsoredProductsReportStream(config, context=self.ctx, authenticator=auth),
+            SponsoredBrandsCampaigns(config, context=self.ctx, authenticator=auth),
+            SponsoredBrandsAdGroups(config, context=self.ctx, authenticator=auth),
+            SponsoredBrandsKeywords(config, context=self.ctx, authenticator=auth),
+            SponsoredBrandsReportStream(config, context=self.ctx, authenticator=auth),
         ]
 
     @staticmethod

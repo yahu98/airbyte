@@ -36,7 +36,6 @@ def setup_responses(
     profiles_response=None,
     campaigns_response=None,
     adgroups_response=None,
-    creatives_response=None,
     targeting_response=None,
     product_ads_response=None,
 ):
@@ -63,12 +62,6 @@ def setup_responses(
             "https://advertising-api.amazon.com/sd/adGroups",
             body=adgroups_response,
         )
-    if creatives_response:
-        responses.add(
-            responses.GET,
-            "https://advertising-api.amazon.com/sd/creatives",
-            body=creatives_response,
-        )
     if targeting_response:
         responses.add(
             responses.GET,
@@ -89,11 +82,21 @@ def test_streams_profile(test_config, profiles_response):
 
     source = SourceAmazonAds()
     streams = source.streams(test_config)
-    assert len(streams) == 7
+    assert len(streams) == 17
     profile_stream = streams[0]
     assert profile_stream.name == "profiles"
-    campaigns_stream = streams[1]
-    assert campaigns_stream.name == "sponsored_display_campaigns"
+    assert streams[1].name == "sponsored_display_campaigns"
+    assert streams[6].name == "sponsored_product_campaigns"
+    assert streams[7].name == "sponsored_product_ad_groups"
+    assert streams[8].name == "sponsored_product_keywords"
+    assert streams[9].name == "sponsored_product_negative_keywords"
+    assert streams[10].name == "sponsored_product_ads"
+    assert streams[11].name == "sponsored_product_targetings"
+    assert streams[12].name == "sponsored_products_report_stream"
+    assert streams[13].name == "sponsored_brands_campaigns"
+    assert streams[14].name == "sponsored_brands_ad_groups"
+    assert streams[15].name == "sponsored_brands_keywords"
+    assert streams[16].name == "sponsored_brands_report_stream"
     schema = profile_stream.get_json_schema()
     records = profile_stream.read_records(SyncMode.full_refresh)
     records = [r for r in records]
@@ -104,27 +107,6 @@ def test_streams_profile(test_config, profiles_response):
     for record, expected_record in zip(records, expected_records):
         validate(schema=schema, instance=record)
         assert record == expected_record
-
-
-@responses.activate
-def test_streams_campaigns_one_vendor(test_config, profiles_response, campaigns_response):
-    setup_responses(profiles_response=profiles_response)
-
-    source = SourceAmazonAds()
-    streams = source.streams(test_config)
-    profile_stream = streams[0]
-    campaigns_stream = streams[1]
-    responses.add(
-        responses.GET,
-        "https://advertising-api.amazon.com/sd/campaigns",
-        body=campaigns_response,
-    )
-    records = profile_stream.read_records(SyncMode.full_refresh)
-    _ = [r for r in records]
-
-    records = campaigns_stream.read_records(SyncMode.full_refresh)
-    campaigns_records = [r for r in records]
-    assert len(campaigns_records) == 4  # we have only one vendor account
 
 
 @responses.activate
@@ -152,7 +134,7 @@ def test_streams_campaigns_4_vendors(test_config, profiles_response, campaigns_r
 )
 @responses.activate
 def test_streams_campaigns_pagination(mocker, test_config, profiles_response, campaigns_response, page_size):
-    mocker.patch("source_amazon_ads.streams.PaginationStream.PAGE_SIZE", page_size)
+    mocker.patch("source_amazon_ads.streams.common.PaginationStream.PAGE_SIZE", page_size)
     profiles_response = loads(profiles_response)
     for profile in profiles_response:
         profile["accountInfo"]["type"] = "vendor"
@@ -178,12 +160,12 @@ def test_streams_campaigns_pagination(mocker, test_config, profiles_response, ca
         content_type="application/json",
         callback=campaigns_paginated_response_cb,
     )
-    records = profile_stream.read_records(SyncMode.full_refresh)
-    _ = [r for r in records]
+    profile_records = profile_stream.read_records(SyncMode.full_refresh)
+    profile_records = [r for r in profile_records]
 
-    records = campaigns_stream.read_records(SyncMode.full_refresh)
-    campaigns_records = [r for r in records]
-    assert len(campaigns_records) == 4 * 4  # we have only one vendor account
+    campaigns_records = campaigns_stream.read_records(SyncMode.full_refresh)
+    campaigns_records = [r for r in campaigns_records]
+    assert len(campaigns_records) == len(profile_records) * len(loads(campaigns_response))
 
 
 @pytest.mark.parametrize(
@@ -192,17 +174,15 @@ def test_streams_campaigns_pagination(mocker, test_config, profiles_response, ca
         ("sponsored_display_ad_groups", "sd/adGroups"),
         ("sponsored_display_product_ads", "sd/productAds"),
         ("sponsored_display_targetings", "sd/targets"),
-        ("sponsored_display_creatives", "sd/creatives"),
     ],
 )
 @responses.activate
 def test_streams_adgroup(
-    test_config, stream_name, endpoint, profiles_response, adgroups_response, creatives_response, targeting_response, product_ads_response
+    test_config, stream_name, endpoint, profiles_response, adgroups_response, targeting_response, product_ads_response
 ):
     setup_responses(
         profiles_response=profiles_response,
         adgroups_response=adgroups_response,
-        creatives_response=creatives_response,
         targeting_response=targeting_response,
         product_ads_response=product_ads_response,
     )
@@ -215,7 +195,7 @@ def test_streams_adgroup(
 
     records = test_stream.read_records(SyncMode.full_refresh)
     records = [r for r in records]
-    assert len(records) == 1
+    assert len(records) == 4
     schema = test_stream.get_json_schema()
     for r in records:
         validate(schema=schema, instance=r)

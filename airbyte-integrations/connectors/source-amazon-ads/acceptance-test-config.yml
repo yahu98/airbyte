@@ -28,7 +28,6 @@ tests:
           "sponsored_display_ad_groups",
           "sponsored_display_product_ads",
           "sponsored_display_targetings",
-          "sponsored_display_creatives",
         ]
   full_refresh:
     - config_path: "secrets/config.json"

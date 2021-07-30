@@ -21,70 +21,73 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-
 from decimal import Decimal
+from typing import Dict, List
 
 from .common import JSEnum, JSModel, State, Targeting
 
 
-class CostType(JSEnum):
-    CPC = "cpc"
-    VCPM = "vcpm"
+class CampaignType(JSEnum):
+    SPONSORED_PRODUCTS = "sponsoredProducts"
 
 
-class Tactic(JSEnum):
-    T00020 = "T00020"
-    T00030 = "T00030"
+class TargetingType(JSEnum):
+    MANUAL = "manual"
+    AUTO = "auto"
 
 
-class DeliveryProfile(JSEnum):
-    AS_SOON_AS_POSSIBLE = "as_soon_as_possible"
+class Strategy(JSEnum):
+    LEGACYFORSALES = "legacyForSales"
+    AUTOFORSALES = "autoForSales"
+    MANUAL = "manual"
 
 
-class DisplayCampaign(JSModel):
+class Predicate(JSEnum):
+    PLACEMENT_TOP = "placementTop"
+    PLACEMENT_PRODUCT_PAGE = "placementProductPage"
+
+
+class Adjustments(JSEnum):
+    predicate: Predicate
+    percentage: Decimal
+
+
+class Bidding(JSModel):
+    strategy: Strategy
+    adjustments: List[Adjustments]
+
+
+class ProductCampaign(JSModel):
+    portfolioId: Decimal
     campaignId: Decimal
     name: str
-    budgetType: str
-    budget: Decimal
+    tags: Dict[str, str]
+    campaignType: CampaignType
+    targetingType: TargetingType
+    state: State
+    dailyBudget: Decimal
     startDate: str
     endDate: str = None
-    costType: CostType
-    state: State
-    portfolioId: str = None
-    tactic: Tactic
-    deliveryProfile: DeliveryProfile
+    premiumBidAdjustment: bool
+    bidding: Bidding
 
 
-class BidOptimization(JSEnum):
-    CLICKS = "clicks"
-    CONVERSIONS = "conversions"
-    REACH = "reach"
-
-
-class ModerationStatus(JSEnum):
-    APPROVED = "APPROVED"
-    PENDING_REVIEW = "PENDING_REVIEW"
-    REJECTED = "REJECTED"
-
-
-class DisplayAdGroup(JSModel):
+class ProductAdGroups(JSModel):
+    adGroupId: Decimal
     name: str
     campaignId: Decimal
-    adGroupId: Decimal
     defaultBid: Decimal
-    bidOptimization: BidOptimization
     state: State
-    tactic: Tactic
 
 
-class DisplayProductAds(JSModel):
-    state: State
+class ProductAd(JSModel):
     adId: Decimal
     campaignId: Decimal
     adGroupId: Decimal
-    asin: str
     sku: str
+    asin: str
+    state: State
 
 
-class DisplayTargeting(Targeting):
-    pass
+class ProductTargeting(Targeting):
+    campaignId: Decimal

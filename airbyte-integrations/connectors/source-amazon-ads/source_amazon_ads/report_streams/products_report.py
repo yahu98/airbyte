@@ -22,7 +22,8 @@
 # SOFTWARE.
 #
 
-from enum import Enum
+
+from copy import copy
 
 from source_amazon_ads.schemas.profile import Types
 
@@ -30,12 +31,17 @@ from .report_streams import RecordType, ReportStream
 
 METRICS_MAP = {
     "campaigns": [
+        "bidPlus",
         "campaignName",
         "campaignId",
+        "campaignStatus",
+        "campaignBudget",
+        "campaignRuleBasedBudget",
+        "applicableBudgetRuleId",
+        "applicableBudgetRuleName",
         "impressions",
         "clicks",
         "cost",
-        "currency",
         "attributedConversions1d",
         "attributedConversions7d",
         "attributedConversions14d",
@@ -56,9 +62,10 @@ METRICS_MAP = {
         "attributedSales7dSameSKU",
         "attributedSales14dSameSKU",
         "attributedSales30dSameSKU",
-        "attributedOrdersNewToBrand14d",
-        "attributedSalesNewToBrand14d",
-        "attributedUnitsOrderedNewToBrand14d",
+        "attributedUnitsOrdered1dSameSKU",
+        "attributedUnitsOrdered7dSameSKU",
+        "attributedUnitsOrdered14dSameSKU",
+        "attributedUnitsOrdered30dSameSKU",
     ],
     "adGroups": [
         "campaignName",
@@ -68,7 +75,6 @@ METRICS_MAP = {
         "impressions",
         "clicks",
         "cost",
-        "currency",
         "attributedConversions1d",
         "attributedConversions7d",
         "attributedConversions14d",
@@ -89,22 +95,57 @@ METRICS_MAP = {
         "attributedSales7dSameSKU",
         "attributedSales14dSameSKU",
         "attributedSales30dSameSKU",
-        "attributedOrdersNewToBrand14d",
-        "attributedSalesNewToBrand14d",
-        "attributedUnitsOrderedNewToBrand14d",
+        "attributedUnitsOrdered1dSameSKU",
+        "attributedUnitsOrdered7dSameSKU",
+        "attributedUnitsOrdered14dSameSKU",
+        "attributedUnitsOrdered30dSameSKU",
+    ],
+    "keywords": [
+        "campaignName",
+        "campaignId",
+        "adGroupName",
+        "adGroupId",
+        "keywordId",
+        "keywordText",
+        "matchType",
+        "impressions",
+        "clicks",
+        "cost",
+        "attributedConversions1d",
+        "attributedConversions7d",
+        "attributedConversions14d",
+        "attributedConversions30d",
+        "attributedConversions1dSameSKU",
+        "attributedConversions7dSameSKU",
+        "attributedConversions14dSameSKU",
+        "attributedConversions30dSameSKU",
+        "attributedUnitsOrdered1d",
+        "attributedUnitsOrdered7d",
+        "attributedUnitsOrdered14d",
+        "attributedUnitsOrdered30d",
+        "attributedSales1d",
+        "attributedSales7d",
+        "attributedSales14d",
+        "attributedSales30d",
+        "attributedSales1dSameSKU",
+        "attributedSales7dSameSKU",
+        "attributedSales14dSameSKU",
+        "attributedSales30dSameSKU",
+        "attributedUnitsOrdered1dSameSKU",
+        "attributedUnitsOrdered7dSameSKU",
+        "attributedUnitsOrdered14dSameSKU",
+        "attributedUnitsOrdered30dSameSKU",
     ],
     "productAds": [
         "campaignName",
         "campaignId",
         "adGroupName",
         "adGroupId",
-        "asin",
-        "sku",
-        "adId",
         "impressions",
         "clicks",
         "cost",
         "currency",
+        "asin",
         "attributedConversions1d",
         "attributedConversions7d",
         "attributedConversions14d",
@@ -125,9 +166,61 @@ METRICS_MAP = {
         "attributedSales7dSameSKU",
         "attributedSales14dSameSKU",
         "attributedSales30dSameSKU",
-        "attributedOrdersNewToBrand14d",
-        "attributedSalesNewToBrand14d",
-        "attributedUnitsOrderedNewToBrand14d",
+        "attributedUnitsOrdered1dSameSKU",
+        "attributedUnitsOrdered7dSameSKU",
+        "attributedUnitsOrdered14dSameSKU",
+        "attributedUnitsOrdered30dSameSKU",
+    ],
+    "asins_keywords": [
+        "campaignName",
+        "campaignId",
+        "adGroupName",
+        "adGroupId",
+        "keywordId",
+        "keywordText",
+        "asin",
+        "otherAsin",
+        "sku",
+        "currency",
+        "matchType",
+        "attributedUnitsOrdered1d",
+        "attributedUnitsOrdered7d",
+        "attributedUnitsOrdered14d",
+        "attributedUnitsOrdered30d",
+        "attributedUnitsOrdered1dOtherSKU",
+        "attributedUnitsOrdered7dOtherSKU",
+        "attributedUnitsOrdered14dOtherSKU",
+        "attributedUnitsOrdered30dOtherSKU",
+        "attributedSales1dOtherSKU",
+        "attributedSales7dOtherSKU",
+        "attributedSales14dOtherSKU",
+        "attributedSales30dOtherSKU",
+    ],
+    "asins_targets": [
+        "campaignName",
+        "campaignId",
+        "adGroupName",
+        "adGroupId",
+        "asin",
+        "otherAsin",
+        "sku",
+        "currency",
+        "matchType",
+        "attributedUnitsOrdered1d",
+        "attributedUnitsOrdered7d",
+        "attributedUnitsOrdered14d",
+        "attributedUnitsOrdered30d",
+        "attributedUnitsOrdered1dOtherSKU",
+        "attributedUnitsOrdered7dOtherSKU",
+        "attributedUnitsOrdered14dOtherSKU",
+        "attributedUnitsOrdered30dOtherSKU",
+        "attributedSales1dOtherSKU",
+        "attributedSales7dOtherSKU",
+        "attributedSales14dOtherSKU",
+        "attributedSales30dOtherSKU",
+        "targetId",
+        "targetingText",
+        "targetingType",
     ],
     "targets": [
         "campaignName",
@@ -141,7 +234,6 @@ METRICS_MAP = {
         "impressions",
         "clicks",
         "cost",
-        "currency",
         "attributedConversions1d",
         "attributedConversions7d",
         "attributedConversions14d",
@@ -162,54 +254,32 @@ METRICS_MAP = {
         "attributedSales7dSameSKU",
         "attributedSales14dSameSKU",
         "attributedSales30dSameSKU",
-        "attributedOrdersNewToBrand14d",
-        "attributedSalesNewToBrand14d",
-        "attributedUnitsOrderedNewToBrand14d",
-    ],
-    "asins": [
-        "campaignName",
-        "campaignId",
-        "adGroupName",
-        "adGroupId",
-        "asin",
-        "otherAsin",
-        "sku",
-        "currency",
-        "attributedUnitsOrdered1dOtherSKU",
-        "attributedUnitsOrdered7dOtherSKU",
-        "attributedUnitsOrdered14dOtherSKU",
-        "attributedUnitsOrdered30dOtherSKU",
-        "attributedSales1dOtherSKU",
-        "attributedSales7dOtherSKU",
-        "attributedSales14dOtherSKU",
-        "attributedSales30dOtherSKU",
+        "attributedUnitsOrdered1dSameSKU",
+        "attributedUnitsOrdered7dSameSKU",
+        "attributedUnitsOrdered14dSameSKU",
+        "attributedUnitsOrdered30dSameSKU",
     ],
 }
 
 
-class Tactics(str, Enum):
-    T00001 = "T00001"
-    T00020 = "T00020"
-    T00030 = "T00030"
-    REMARKETING = "remarketing"
-
-
-class DisplayReportStream(ReportStream):
+class SponsoredProductsReportStream(ReportStream):
     """
-    https://advertising.amazon.com/API/docs/en-us/sponsored-display/3-0/openapi#/Reports
+    https://advertising.amazon.com/API/docs/en-us/sponsored-products/2-0/openapi#/Reports
     """
 
     def report_init_endpoint(self, record_type: str) -> str:
-        return f"/sd/{record_type}/report"
+        return f"/v2/sp/{record_type}/report"
 
     metrics_map = METRICS_MAP
 
     def _get_init_report_body(self, report_date: str, record_type: str, profile):
-        if record_type == RecordType.ASINS and profile.accountInfo.type == Types.VENDOR:
-            return None
-        return {
+        metrics_list = self.metrics_map[record_type]
+        body = {
             "reportDate": report_date,
-            # Only for most common T00020 tactic for now
-            "tactic": Tactics.T00020,
-            "metrics": ",".join(self.metrics_map[record_type]),
         }
+        if RecordType.ASINS in record_type:
+            body["campaignType"] = "sponsoredProducts"
+            if profile.accountInfo.type == Types.VENDOR:
+                metrics_list = copy(metrics_list)
+                metrics_list.remove("sku")
+        return {**body, "metrics": ",".join(metrics_list)}

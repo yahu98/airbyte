@@ -21,27 +21,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-from .common import JSModel, Keywords, MetricsReport, NegativeKeywords
-from .profile import Profile, Types
-from .sponsored_brands import BrandsAdGroup, BrandsCampaign
-from .sponsored_display import DisplayAdGroup, DisplayCampaign, DisplayProductAds, DisplayTargeting
-from .sponsored_products import ProductAd, ProductAdGroups, ProductCampaign, ProductTargeting
+from .profiles import Profiles
+from .sponsored_brands import SponsoredBrandsAdGroups, SponsoredBrandsCampaigns, SponsoredBrandsKeywords
+from .sponsored_display import SponsoredDisplayAdGroups, SponsoredDisplayCampaigns, SponsoredDisplayProductAds, SponsoredDisplayTargetings
+from .sponsored_products import (
+    SponsoredProductAdGroups,
+    SponsoredProductAds,
+    SponsoredProductCampaigns,
+    SponsoredProductKeywords,
+    SponsoredProductNegativeKeywords,
+    SponsoredProductTargetings,
+)
 
 __all__ = [
-    "Types",
-    "Profile",
-    "JSModel",
-    "DisplayAdGroup",
-    "DisplayCampaign",
-    "DisplayProductAds",
-    "DisplayTargeting",
-    "MetricsReport",
-    "ProductCampaign",
-    "ProductAdGroups",
-    "Keywords",
-    "NegativeKeywords",
-    "ProductAd",
-    "ProductTargeting",
-    "BrandsCampaign",
-    "BrandsAdGroup",
+    "Profiles",
+    "SponsoredDisplayAdGroups",
+    "SponsoredDisplayCampaigns",
+    "SponsoredDisplayProductAds",
+    "SponsoredDisplayTargetings",
+    "SponsoredProductAdGroups",
+    "SponsoredProductAds",
+    "SponsoredProductCampaigns",
+    "SponsoredProductKeywords",
+    "SponsoredProductNegativeKeywords",
+    "SponsoredProductTargetings",
+    "SponsoredBrandsCampaigns",
+    "SponsoredBrandsAdGroups",
+    "SponsoredBrandsKeywords",
 ]

@@ -37,12 +37,11 @@ import backoff
 import requests
 from airbyte_cdk.logger import AirbyteLogger
 from airbyte_cdk.models import SyncMode
-from airbyte_cdk.sources.streams.core import Stream
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 from pydantic import BaseModel
 from source_amazon_ads.common import URL_BASE, Config, SourceContext
 from source_amazon_ads.schemas import MetricsReport
-from source_amazon_ads.schemas.profile import Types
+from source_amazon_ads.streams.common import BasicAmazonAdsStream
 
 logger = AirbyteLogger()
 
@@ -59,13 +58,6 @@ class Status(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     SUCCESS = "SUCCESS"
     FAILURE = "FAILURE"
-
-
-class Tactics(str, Enum):
-    T00001 = "T00001"
-    T00020 = "T00020"
-    T00030 = "T00030"
-    REMARKETING = "remarketing"
 
 
 class ReportInitResponse(BaseModel):
@@ -91,7 +83,7 @@ class TooManyRequests(Exception):
     """
 
 
-class ReportStream(Stream, ABC):
+class ReportStream(BasicAmazonAdsStream, ABC):
     """
     Common base class for report streams
     """
@@ -109,6 +101,10 @@ class ReportStream(Stream, ABC):
         self._session = requests.Session()
         self._last_successfull_slice = None
         self._generate_model()
+
+    @property
+    def model(self):
+        return self._model
 
     def read_records(
         self,
@@ -152,6 +148,7 @@ class ReportStream(Stream, ABC):
             for success_report in completed_reports:
                 report_infos.remove(success_report)
             if report_infos:
+                print(report_infos)
                 logger.info(f"{len(report_infos)} report(s) remained, taking {self.CHECK_INTERVAL_SECONDS} seconds timeout")
                 time.sleep(self.CHECK_INTERVAL_SECONDS)
         if not report_infos:
@@ -166,9 +163,6 @@ class ReportStream(Stream, ABC):
         for metric_list in self.metrics_map.values():
             metrics.update(set(metric_list))
         self._model = MetricsReport.generate_metric_model(metrics)
-
-    def get_json_schema(self):
-        return self._model.schema()
 
     def _get_auth_headers(self, profile_id: int):
         return {
@@ -260,6 +254,12 @@ class ReportStream(Stream, ABC):
             return current_stream_state
         return self._last_successfull_slice
 
+    @abstractmethod
+    def _get_init_report_body(self, report_date: str, record_type: str, profile):
+        """
+        Override to return dict representing body of POST request for initiating report creation.
+        """
+
     def _init_reports(self, report_date: str) -> List[ReportInfo]:
         """
         Initiate report creating
@@ -267,15 +267,10 @@ class ReportStream(Stream, ABC):
         report_infos = []
         for profile in self._ctx.profiles:
             for record_type, metrics in self.metrics_map.items():
-                if record_type == RecordType.ASINS and profile.accountInfo.type == Types.VENDOR:
-                    # Asins reports not available to Vendors
+                report_init_body = self._get_init_report_body(report_date, record_type, profile)
+                if not report_init_body:
                     continue
-                report_init_body = {
-                    "reportDate": report_date,
-                    # Only for most common T00020 tactic for now
-                    "tactic": Tactics.T00020,
-                    "metrics": ",".join(metrics),
-                }
+                record_type = record_type.split("_")[0]
                 logger.info(f"Initiating report generation for {profile.profileId} profile with {record_type} type for {report_date} date")
                 response = self._send_http_request(
                     urljoin(URL_BASE, self.report_init_endpoint(record_type)),
