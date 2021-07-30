@@ -51,18 +51,6 @@ class AmazonAdsStream(HttpStream, ABC):
         """
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        """
-        This method should return a Mapping (e.g: dict) containing whatever information required to make paginated requests. This dict is passed
-        to most other methods in this class to help you form headers, request bodies, query params, etc..
-
-        For example, if the API accepts a 'page' parameter to determine which page of the result to return, and a response from the API contains a
-        'page' number, then this method should probably return a dict {'page': response.json()['page'] + 1} to increment the page count by 1.
-        The request_params method should then read the input next_page_token and set the 'page' param to next_page_token['page'].
-
-        :param response: the most recent response from the API
-        :return If there is another page in the result, a mapping (e.g: dict) containing information needed to query the next page in the response.
-                If there are no more pages in the result, return None.
-        """
         return None
 
     def request_headers(self, *args, **kvargs) -> MutableMapping[str, Any]:
@@ -72,9 +60,7 @@ class AmazonAdsStream(HttpStream, ABC):
         """
         :return an object representing single record in the response
         """
-        resp = loads(response.text)
-        for r in resp:
-            yield r
+        yield from loads(response.text)
 
     def get_json_schema(self):
         return self.model.schema()
@@ -93,10 +79,10 @@ class Profiles(AmazonAdsStream):
         return "v2/profiles"
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        for r in super().parse_response(response, **kwargs):
-            profile_id_obj = self.model.parse_obj(r)
+        for record in super().parse_response(response, **kwargs):
+            profile_id_obj = self.model.parse_obj(record)
             self.ctx.profiles.append(profile_id_obj)
-            yield r
+            yield record
 
     def read_records(self, *args, **kvargs) -> Iterable[Mapping[str, Any]]:
         if self.ctx.profiles:
@@ -108,7 +94,7 @@ class Profiles(AmazonAdsStream):
         """
         Fill profiles info for other streams in case of "profiles" stream havent been specified on catalog config
         """
-        _ = [r for r in self.read_records(SyncMode.full_refresh)]
+        _ = [record for record in self.read_records(SyncMode.full_refresh)]
 
 
 class ContextStream(AmazonAdsStream):
@@ -119,23 +105,22 @@ class ContextStream(AmazonAdsStream):
     flattern_properties = []
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        for r in super().parse_response(response, **kwargs):
+        for record in super().parse_response(response, **kwargs):
             for prop in self.flattern_properties:
-                if prop in r:
-                    r[prop] = dumps(r[prop])
-            yield r
+                if prop in record:
+                    record[prop] = dumps(record[prop])
+            yield record
 
     def read_records(self, *args, **kvargs) -> Iterable[Mapping[str, Any]]:
         for profile in self.ctx.profiles:
             if profile.accountInfo.type == Types.VENDOR:
                 self.ctx.current_profile_id = profile.profileId
-                for record in super().read_records(*args, **kvargs):
-                    yield record
+                yield from super().read_records(*args, **kvargs)
 
     def request_headers(self, *args, **kvargs) -> MutableMapping[str, Any]:
-        hdr = super().request_headers(*args, **kvargs)
-        hdr["Amazon-Advertising-API-Scope"] = str(self.ctx.current_profile_id)
-        return hdr
+        headers = super().request_headers(*args, **kvargs)
+        headers["Amazon-Advertising-API-Scope"] = str(self.ctx.current_profile_id)
+        return headers
 
 
 class PaginationStream(ContextStream):

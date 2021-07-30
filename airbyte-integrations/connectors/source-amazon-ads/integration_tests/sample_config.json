@@ -1,3 +1,6 @@
 {
-  "fix-me": "TODO"
+  "client_id": "<user's_client_id>",
+  "client_secret": "<user's_client_secret>",
+  "refresh_token": "<user's_ refresh_token>",
+  "scope": "<user's_scopes>"
 }
