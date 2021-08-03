@@ -99,7 +99,6 @@ class ReportStream(BasicAmazonAdsStream, ABC):
     def __init__(self, config: Spec, context: SourceContext, authenticator: Oauth2Authenticator):
         self._authenticator = authenticator
         self._session = requests.Session()
-        self._last_successfull_slice = None
         self._generate_model()
         super().__init__(config, context)
 
@@ -116,11 +115,6 @@ class ReportStream(BasicAmazonAdsStream, ABC):
     ) -> Iterable[Mapping[str, Any]]:
 
         report_date = stream_slice[self.cursor_field]
-        self._last_successfull_slice = None
-        # FIXME: This generates metric report for current date which doesnt
-        # make sense cause it would be incomplete. We need to generate reports
-        # on day before and also take into account timezone parameter specified
-        # by the current profile.
         report_infos = self._init_reports(report_date)
         logger.info(f"Waiting for {len(report_infos)} report(s) to be generated")
         start_time_point = datetime.now()
@@ -134,11 +128,7 @@ class ReportStream(BasicAmazonAdsStream, ABC):
                     completed_reports.append(report_info)
                 elif report_status == Status.SUCCESS:
                     metric_objects = self._download_report(report_info, download_url)
-                    # FIXME: If there is no records in last report the stream state would not be updated
                     for metric_object in metric_objects:
-                        if metric_object == metric_objects[-1] and len(completed_reports) + 1 == len(report_infos):
-                            # This is last report for this stream, we can save stream state
-                            self._last_successfull_slice = stream_slice
                         yield self._model(
                             profileId=report_info.profile_id,
                             recordType=report_info.record_type,
@@ -250,10 +240,8 @@ class ReportStream(BasicAmazonAdsStream, ABC):
 
         return [{self.cursor_field: date} for date in ReportStream.get_report_date_ranges(start_date)]
 
-    def get_updated_state(self, current_stream_state: Dict[str, Any], *args) -> Mapping[str, Any]:
-        if not self._last_successfull_slice:
-            return current_stream_state
-        return self._last_successfull_slice
+    def get_updated_state(self, current_stream_state: Dict[str, Any], latest_data: Mapping[str, Any]) -> Mapping[str, Any]:
+        return {"reportDate": latest_data["reportDate"]}
 
     @abstractmethod
     def _get_init_report_body(self, report_date: str, record_type: str, profile):

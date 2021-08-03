@@ -180,9 +180,7 @@ class TestBasicRead(BaseTest):
         output = docker_runner.call_read(connector_config, configured_catalog)
         records = [message.record for message in output if message.type == Type.RECORD]
 
-        # Should not fail in case if all configured streams could be empty
-        if set(inputs.empty_streams) != set([stream.stream.name for stream in configured_catalog.streams]):
-            assert records, "At least one record should be read using provided catalog"
+        assert records, "At least one record should be read using provided catalog"
 
         if inputs.validate_schema:
             self._validate_schema(records=records, configured_catalog=configured_catalog)

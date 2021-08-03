@@ -32,7 +32,7 @@ from freezegun import freeze_time
 from pytest import raises
 from requests.exceptions import ConnectionError
 from source_amazon_ads.common import SourceContext
-from source_amazon_ads.report_streams import DisplayReportStream
+from source_amazon_ads.report_streams import DisplayReportStream, SponsoredBrandsReportStream, SponsoredProductsReportStream
 from source_amazon_ads.report_streams.report_streams import TooManyRequests
 from source_amazon_ads.schemas.profile import AccountInfo, Profile, TimeZones, Types
 from source_amazon_ads.spec import Spec
@@ -72,9 +72,20 @@ mvAabWFpamxgZmBiQIrRcE1go7liAYX9dsTHAQAA
 METRICS_COUNT = 5
 
 
-def setup_responses(init_response=None, status_response=None, metric_response=None):
+def setup_responses(init_response=None, init_response_products=None, init_response_brands=None, status_response=None, metric_response=None):
     if init_response:
         responses.add(responses.POST, re.compile(r"https://advertising-api.amazon.com/sd/[a-zA-Z]+/report"), body=init_response, status=202)
+    if init_response_products:
+        responses.add(
+            responses.POST,
+            re.compile(r"https://advertising-api.amazon.com/v2/sp/[a-zA-Z]+/report"),
+            body=init_response_products,
+            status=202,
+        )
+    if init_response_brands:
+        responses.add(
+            responses.POST, re.compile(r"https://advertising-api.amazon.com/v2/hsa/[a-zA-Z]+/report"), body=init_response_brands, status=202
+        )
     if status_response:
         responses.add(
             responses.GET,
@@ -125,7 +136,7 @@ def test_display_report_stream(test_config):
     stream_slice = {"reportDate": "20210725"}
     metrics = [m for m in stream.read_records(SyncMode.incremental, stream_slice=stream_slice)]
     assert len(metrics) == METRICS_COUNT * len(stream.metrics_map)
-    updated_state = stream.get_updated_state(None)
+    updated_state = stream.get_updated_state(None, stream_slice)
     assert updated_state == stream_slice
 
     ctx = make_context(profile_type=Types.VENDOR)
@@ -133,6 +144,40 @@ def test_display_report_stream(test_config):
     metrics = [m for m in stream.read_records(SyncMode.incremental, stream_slice=stream_slice)]
     # Skip asins record for vendor profiles
     assert len(metrics) == METRICS_COUNT * (len(stream.metrics_map) - 1)
+
+
+@responses.activate
+def test_products_report_stream(test_config):
+    setup_responses(
+        init_response_products=REPORT_INIT_RESPONSE,
+        status_response=REPORT_STATUS_RESPONSE,
+        metric_response=METRIC_RESPONSE,
+    )
+
+    config = Spec(**test_config)
+    ctx = make_context(profile_type=Types.VENDOR)
+
+    stream = SponsoredProductsReportStream(config, ctx, authenticator=mock.MagicMock())
+    stream_slice = {"reportDate": "20210725"}
+    metrics = [m for m in stream.read_records(SyncMode.incremental, stream_slice=stream_slice)]
+    assert len(metrics) == METRICS_COUNT * len(stream.metrics_map)
+
+
+@responses.activate
+def test_brands_report_stream(test_config):
+    setup_responses(
+        init_response_brands=REPORT_INIT_RESPONSE,
+        status_response=REPORT_STATUS_RESPONSE,
+        metric_response=METRIC_RESPONSE,
+    )
+
+    config = Spec(**test_config)
+    ctx = make_context()
+
+    stream = SponsoredBrandsReportStream(config, ctx, authenticator=mock.MagicMock())
+    stream_slice = {"reportDate": "20210725"}
+    metrics = [m for m in stream.read_records(SyncMode.incremental, stream_slice=stream_slice)]
+    assert len(metrics) == METRICS_COUNT * len(stream.metrics_map)
 
 
 @responses.activate
@@ -226,7 +271,6 @@ def test_display_report_stream_timeout(mocker, test_config):
         metrics = [m for m in stream.read_records(SyncMode.incremental, stream_slice=stream_slice)]
         assert len(metrics) == success_cnt * len(stream.metrics_map)
         time_mock.assert_called_with(30)
-        assert stream.get_updated_state(None) is None
 
 
 @freeze_time("2021-07-30 04:26:08")

@@ -35,6 +35,10 @@ class PageToken:
 
 @dataclass
 class SourceContext:
+    """
+    Class for exchanging state between streams.
+    """
+
     profiles: List[Profile] = field(default_factory=list)
     current_profile_id: str = None
     current_token: PageToken = field(default_factory=PageToken)

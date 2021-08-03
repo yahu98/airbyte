@@ -22,9 +22,9 @@
 # SOFTWARE.
 #
 
+import json
 from abc import ABC, abstractmethod
 from http import HTTPStatus
-from json import dumps, loads
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
 
 import requests
@@ -44,8 +44,8 @@ class ErrorResponse(BaseModel):
 
 
 class BasicAmazonAdsStream(Stream, ABC):
-    def __init__(self, config, context: SourceContext = SourceContext()):
-        self._ctx = context
+    def __init__(self, config, context: SourceContext = None):
+        self._ctx = context or SourceContext()
         self._config = config
         self._url = self._config.host or URL_BASE
 
@@ -62,8 +62,8 @@ class BasicAmazonAdsStream(Stream, ABC):
 
 # Basic full refresh stream
 class AmazonAdsStream(HttpStream, BasicAmazonAdsStream):
-    def __init__(self, config, *args, context: SourceContext = SourceContext(), **kwargs):
-        BasicAmazonAdsStream.__init__(self, config, context=context)
+    def __init__(self, config, *args, context: SourceContext = None, **kwargs):
+        BasicAmazonAdsStream.__init__(self, config, context=context or SourceContext())
         HttpStream.__init__(self, *args, **kwargs)
 
     @property
@@ -81,7 +81,7 @@ class AmazonAdsStream(HttpStream, BasicAmazonAdsStream):
         :return an object representing single record in the response
         """
         if response:
-            yield from loads(response.text)
+            yield from json.loads(response.text)
         else:
             yield from []
 
@@ -113,7 +113,7 @@ class ContextStream(AmazonAdsStream):
         for record in super().parse_response(response, **kwargs):
             for prop in self.flattern_properties:
                 if prop in record:
-                    record[prop] = dumps(record[prop])
+                    record[prop] = json.dumps(record[prop])
             yield record
 
     def read_records(self, *args, **kvargs) -> Iterable[Mapping[str, Any]]:
@@ -132,17 +132,17 @@ class PaginationStream(ContextStream):
     Stream for getting resources with pagination support
     """
 
-    PAGE_SIZE = 100
+    page_size = 100
 
     def next_page_token(self, response: requests.Response) -> Optional[PageToken]:
         if not response:
             return None
-        responses = loads(response.text)
-        if len(responses) < PaginationStream.PAGE_SIZE:
+        responses = json.loads(response.text)
+        if len(responses) < self.page_size:
             self._ctx.current_token = PageToken()
             return None
         else:
-            next_token = PageToken(self._ctx.current_token.offset + PaginationStream.PAGE_SIZE)
+            next_token = PageToken(self._ctx.current_token.offset + self.page_size)
             self._ctx.current_token = next_token
             return next_token
 
@@ -154,5 +154,5 @@ class PaginationStream(ContextStream):
     ) -> MutableMapping[str, Any]:
         return {
             "startIndex": next_page_token.offset if next_page_token else 0,
-            "count": PaginationStream.PAGE_SIZE,
+            "count": self.page_size,
         }

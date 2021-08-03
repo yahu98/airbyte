@@ -22,10 +22,12 @@
 # SOFTWARE.
 #
 
+from http import HTTPStatus
 from json import dumps, loads
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import requests
 import responses
 from airbyte_cdk.models import SyncMode
 from jsonschema import validate
@@ -38,6 +40,7 @@ def setup_responses(
     adgroups_response=None,
     targeting_response=None,
     product_ads_response=None,
+    generic_response=None,
 ):
     responses.add(
         responses.POST,
@@ -73,6 +76,12 @@ def setup_responses(
             responses.GET,
             "https://advertising-api.amazon.com/sd/productAds",
             body=product_ads_response,
+        )
+    if generic_response:
+        responses.add(
+            responses.GET,
+            f"https://advertising-api.amazon.com/{generic_response}",
+            json=[],
         )
 
 
@@ -134,7 +143,7 @@ def test_streams_campaigns_4_vendors(test_config, profiles_response, campaigns_r
 )
 @responses.activate
 def test_streams_campaigns_pagination(mocker, test_config, profiles_response, campaigns_response, page_size):
-    mocker.patch("source_amazon_ads.streams.common.PaginationStream.PAGE_SIZE", page_size)
+    mocker.patch("source_amazon_ads.streams.common.PaginationStream.page_size", page_size)
     profiles_response = loads(profiles_response)
     for profile in profiles_response:
         profile["accountInfo"]["type"] = "vendor"
@@ -168,6 +177,48 @@ def test_streams_campaigns_pagination(mocker, test_config, profiles_response, ca
     assert len(campaigns_records) == len(profile_records) * len(loads(campaigns_response))
 
 
+@pytest.mark.parametrize(("status_code"), [HTTPStatus.FORBIDDEN, HTTPStatus.UNAUTHORIZED])
+@responses.activate
+def test_streams_campaigns_pagination_403_error(mocker, status_code, test_config, profiles_response, campaigns_response):
+    setup_responses(
+        profiles_response=profiles_response,
+    )
+    responses.add(responses.GET, "https://advertising-api.amazon.com/sd/campaigns", json={"message": "msg"}, status=status_code)
+    source = SourceAmazonAds()
+    streams = source.streams(test_config)
+    profile_stream = streams[0]
+    campaigns_stream = streams[1]
+
+    profile_records = profile_stream.read_records(SyncMode.full_refresh)
+    profile_records = [r for r in profile_records]
+    campaigns_records = campaigns_stream.read_records(SyncMode.full_refresh)
+    with pytest.raises(requests.exceptions.HTTPError):
+        campaigns_records = [r for r in campaigns_records]
+
+
+@responses.activate
+def test_streams_campaigns_pagination_403_error_expected(mocker, test_config, profiles_response, campaigns_response):
+    setup_responses(
+        profiles_response=profiles_response,
+    )
+    responses.add(
+        responses.GET,
+        "https://advertising-api.amazon.com/sd/campaigns",
+        json={"code": "403", "details": "details", "requestId": "xxx"},
+        status=403,
+    )
+    source = SourceAmazonAds()
+    streams = source.streams(test_config)
+    profile_stream = streams[0]
+    campaigns_stream = streams[1]
+
+    profile_records = profile_stream.read_records(SyncMode.full_refresh)
+    profile_records = [r for r in profile_records]
+    campaigns_records = campaigns_stream.read_records(SyncMode.full_refresh)
+    campaigns_records = [r for r in campaigns_records]
+    assert campaigns_records == []
+
+
 @pytest.mark.parametrize(
     ("stream_name", "endpoint"),
     [
@@ -177,7 +228,7 @@ def test_streams_campaigns_pagination(mocker, test_config, profiles_response, ca
     ],
 )
 @responses.activate
-def test_streams_adgroup(
+def test_streams_displays(
     test_config, stream_name, endpoint, profiles_response, adgroups_response, targeting_response, product_ads_response
 ):
     setup_responses(
@@ -199,4 +250,36 @@ def test_streams_adgroup(
     schema = test_stream.get_json_schema()
     for r in records:
         validate(schema=schema, instance=r)
+    assert any([endpoint in call.request.url for call in responses.calls])
+
+
+@pytest.mark.parametrize(
+    ("stream_name", "endpoint"),
+    [
+        ("sponsored_brands_campaigns", "sb/campaigns"),
+        ("sponsored_brands_ad_groups", "sb/adGroups"),
+        ("sponsored_brands_keywords", "sb/keywords"),
+        ("sponsored_product_campaigns", "v2/sp/campaigns"),
+        ("sponsored_product_ad_groups", "v2/sp/adGroups"),
+        ("sponsored_product_keywords", "v2/sp/keywords"),
+        ("sponsored_product_negative_keywords", "v2/sp/negativeKeywords"),
+        ("sponsored_product_ads", "v2/sp/productAds"),
+        ("sponsored_product_targetings", "v2/sp/targets"),
+    ],
+)
+@responses.activate
+def test_streams_brands_and_products(
+    test_config, stream_name, endpoint, profiles_response, adgroups_response, targeting_response, product_ads_response
+):
+    setup_responses(profiles_response=profiles_response, generic_response=endpoint)
+
+    source = SourceAmazonAds()
+    streams = source.streams(test_config)
+    profile_stream = streams[0]
+    test_stream = [stream for stream in streams if stream.name == stream_name][0]
+    _ = [r for r in profile_stream.read_records(SyncMode.full_refresh)]
+
+    records = test_stream.read_records(SyncMode.full_refresh)
+    records = [r for r in records]
+    assert records == []
     assert any([endpoint in call.request.url for call in responses.calls])

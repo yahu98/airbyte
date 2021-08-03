@@ -23,7 +23,7 @@
 #
 
 import responses
-from airbyte_cdk.models import AirbyteConnectionStatus, AirbyteMessage, Status, Type
+from airbyte_cdk.models import AirbyteConnectionStatus, AirbyteMessage, ConnectorSpecification, Status, Type
 from jsonschema import Draft4Validator
 from source_amazon_ads import SourceAmazonAds
 
@@ -50,6 +50,12 @@ def test_discover(test_config):
     schemas = [stream["json_schema"] for stream in catalog["catalog"]["streams"]]
     for schema in schemas:
         Draft4Validator.check_schema(schema)
+
+
+def test_spec(test_config):
+    source = SourceAmazonAds()
+    spec = source.spec()
+    assert isinstance(spec, ConnectorSpecification)
 
 
 @responses.activate
