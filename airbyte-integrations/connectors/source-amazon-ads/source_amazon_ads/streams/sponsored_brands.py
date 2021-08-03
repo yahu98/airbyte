@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+
 from source_amazon_ads.schemas import BrandsAdGroup, BrandsCampaign
 from source_amazon_ads.streams.common import PaginationStream
 

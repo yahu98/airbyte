@@ -101,7 +101,7 @@ def test_streams_profile(test_config, profiles_response):
     records = profile_stream.read_records(SyncMode.full_refresh)
     records = [r for r in records]
     assert len(responses.calls) == 2
-    assert len(profile_stream.ctx.profiles) == 4
+    assert len(profile_stream._ctx.profiles) == 4
     assert len(records) == 4
     expected_records = loads(profiles_response)
     for record, expected_record in zip(records, expected_records):

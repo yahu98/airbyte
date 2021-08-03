@@ -34,13 +34,15 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 from urllib.parse import urljoin
 
 import backoff
+import pytz
 import requests
 from airbyte_cdk.logger import AirbyteLogger
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 from pydantic import BaseModel
-from source_amazon_ads.common import URL_BASE, Config, SourceContext
+from source_amazon_ads.common import SourceContext
 from source_amazon_ads.schemas import MetricsReport
+from source_amazon_ads.spec import Spec
 from source_amazon_ads.streams.common import BasicAmazonAdsStream
 
 logger = AirbyteLogger()
@@ -94,13 +96,12 @@ class ReportStream(BasicAmazonAdsStream, ABC):
     REPORT_DATE_FORMAT = "%Y%m%d"
     cursor_field = "reportDate"
 
-    def __init__(self, config: Config, context: SourceContext, authenticator: Oauth2Authenticator):
+    def __init__(self, config: Spec, context: SourceContext, authenticator: Oauth2Authenticator):
         self._authenticator = authenticator
-        self._ctx = context
-        self._config = config
         self._session = requests.Session()
         self._last_successfull_slice = None
         self._generate_model()
+        super().__init__(config, context)
 
     @property
     def model(self):
@@ -189,7 +190,7 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         Check report status and return download link if report generated successfuly
         """
         check_endpoint = f"/v2/reports/{report_info.report_id}"
-        resp = self._send_http_request(urljoin(URL_BASE, check_endpoint), report_info.profile_id)
+        resp = self._send_http_request(urljoin(self._url, check_endpoint), report_info.profile_id)
         resp = ReportStatus.parse_raw(resp.text)
         return resp.status, resp.location
 
@@ -267,13 +268,15 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         report_infos = []
         for profile in self._ctx.profiles:
             for record_type, metrics in self.metrics_map.items():
-                report_init_body = self._get_init_report_body(report_date, record_type, profile)
+                metric_date = self._calc_report_generateion_date(report_date, profile)
+
+                report_init_body = self._get_init_report_body(metric_date, record_type, profile)
                 if not report_init_body:
                     continue
                 record_type = record_type.split("_")[0]
-                logger.info(f"Initiating report generation for {profile.profileId} profile with {record_type} type for {report_date} date")
+                logger.info(f"Initiating report generation for {profile.profileId} profile with {record_type} type for {metric_date} date")
                 response = self._send_http_request(
-                    urljoin(URL_BASE, self.report_init_endpoint(record_type)),
+                    urljoin(self._url, self.report_init_endpoint(record_type)),
                     profile.profileId,
                     report_init_body,
                 )
@@ -292,6 +295,21 @@ class ReportStream(BasicAmazonAdsStream, ABC):
                 logger.info("Initiated successfully")
 
         return report_infos
+
+    @staticmethod
+    def _calc_report_generateion_date(report_date: str, profile):
+        """
+        According to reference time zone is specified by the profile used to
+        request the report. If specified date is today, then the performance
+        report may contain partial information. Based on this we generating
+        reports from day before specified report date and we should take into
+        account timezone for each profile.
+        """
+        report_date = datetime.strptime(report_date, "%Y%m%d")
+        profile_tz = pytz.timezone(profile.timezone)
+        profile_time = report_date.astimezone(profile_tz)
+        profile_yesterday = profile_time - timedelta(days=1)
+        return profile_yesterday.strftime(ReportStream.REPORT_DATE_FORMAT)
 
     def _download_report(self, report_info: ReportInfo, url: str) -> List[dict]:
         """

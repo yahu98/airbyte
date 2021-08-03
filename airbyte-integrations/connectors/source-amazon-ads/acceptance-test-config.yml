@@ -3,7 +3,7 @@
 connector_image: airbyte/source-amazon-ads:dev
 tests:
   spec:
-    - spec_path: "source_amazon_ads/spec.json"
+    - spec_path: "integration_tests/spec.json"
   connection:
     - config_path: "secrets/config.json"
       status: "succeed"
@@ -13,22 +13,43 @@ tests:
     - config_path: "secrets/config.json"
   basic_read:
     - config_path: "secrets/config.json"
-      configured_catalog_path: "integration_tests/configured_catalog.json"
-      empty_streams: ["sponsored_display_campaigns"]
+      configured_catalog_path: "integration_tests/configured_catalog_products.json"
+      empty_streams:
+        [
+          "sponsored_product_negative_keywords",
+          "sponsored_product_targetings",
+          "sponsored_product_ads",
+        ]
       expect_records:
-        path: "integration_tests/expected_records.txt"
+        path: "integration_tests/expected_produts_stream.txt"
         extra_fields: no
         exact_order: no
         extra_records: yes
     - config_path: "secrets/config.json"
       configured_catalog_path: "integration_tests/no_profiles_catalog.json"
       empty_streams:
+        ["sponsored_display_product_ads", "sponsored_display_targetings"]
+    - config_path: "secrets/config.json"
+      configured_catalog_path: "integration_tests/configured_catalog_display.json"
+      empty_streams:
         [
-          "sponsored_display_campaigns",
-          "sponsored_display_ad_groups",
+          "display_report_stream",
           "sponsored_display_product_ads",
           "sponsored_display_targetings",
         ]
+      expect_records:
+        path: "integration_tests/expected_display_stream.txt"
+        extra_fields: no
+        exact_order: no
+        extra_records: yes
+    - config_path: "secrets/config.json"
+      configured_catalog_path: "integration_tests/configured_catalog_brands.json"
+      empty_streams: ["sponsored_brands_report_stream"]
+      expect_records:
+        path: "integration_tests/expected_brands_stream.txt"
+        extra_fields: no
+        exact_order: no
+        extra_records: no
   full_refresh:
     - config_path: "secrets/config.json"
-      configured_catalog_path: "integration_tests/configured_catalog.json"
+      configured_catalog_path: "integration_tests/configured_catalog_display.json"

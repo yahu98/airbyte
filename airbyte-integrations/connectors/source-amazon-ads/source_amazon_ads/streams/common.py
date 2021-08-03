@@ -31,8 +31,10 @@ import requests
 from airbyte_cdk.sources.streams.core import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
 from pydantic import BaseModel, ValidationError
-from source_amazon_ads.common import URL_BASE, PageToken, SourceContext
+from source_amazon_ads.common import PageToken, SourceContext
 from source_amazon_ads.schemas import JSModel
+
+URL_BASE = "https://advertising-api.amazon.com/"
 
 
 class ErrorResponse(BaseModel):
@@ -43,9 +45,9 @@ class ErrorResponse(BaseModel):
 
 class BasicAmazonAdsStream(Stream, ABC):
     def __init__(self, config, context: SourceContext = SourceContext()):
-        self.ctx = context
+        self._ctx = context
         self._config = config
-        self._url = URL_BASE
+        self._url = self._config.host or URL_BASE
 
     @property
     @abstractmethod
@@ -115,13 +117,13 @@ class ContextStream(AmazonAdsStream):
             yield record
 
     def read_records(self, *args, **kvargs) -> Iterable[Mapping[str, Any]]:
-        for profile in self.ctx.profiles:
-            self.ctx.current_profile_id = profile.profileId
+        for profile in self._ctx.profiles:
+            self._ctx.current_profile_id = profile.profileId
             yield from super().read_records(*args, **kvargs)
 
     def request_headers(self, *args, **kvargs) -> MutableMapping[str, Any]:
         headers = super().request_headers(*args, **kvargs)
-        headers["Amazon-Advertising-API-Scope"] = str(self.ctx.current_profile_id)
+        headers["Amazon-Advertising-API-Scope"] = str(self._ctx.current_profile_id)
         return headers
 
 
@@ -137,11 +139,11 @@ class PaginationStream(ContextStream):
             return None
         responses = loads(response.text)
         if len(responses) < PaginationStream.PAGE_SIZE:
-            self.ctx.current_token = PageToken()
+            self._ctx.current_token = PageToken()
             return None
         else:
-            next_token = PageToken(self.ctx.current_token.offset + PaginationStream.PAGE_SIZE)
-            self.ctx.current_token = next_token
+            next_token = PageToken(self._ctx.current_token.offset + PaginationStream.PAGE_SIZE)
+            self._ctx.current_token = next_token
             return next_token
 
     def request_params(

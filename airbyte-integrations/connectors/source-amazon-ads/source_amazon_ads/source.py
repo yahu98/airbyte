@@ -26,12 +26,14 @@
 from typing import Any, List, Mapping, Tuple
 
 from airbyte_cdk.logger import AirbyteLogger
+from airbyte_cdk.models import ConnectorSpecification
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 
-from .common import Config, SourceContext
+from .common import SourceContext
 from .report_streams import DisplayReportStream, SponsoredBrandsReportStream, SponsoredProductsReportStream
+from .spec import Spec
 from .streams import (
     Profiles,
     SponsoredBrandsAdGroups,
@@ -64,7 +66,7 @@ class SourceAmazonAds(AbstractSource):
         :param logger:  logger object
         :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
         """
-        config = Config(**config)
+        config = Spec(**config)
         Profiles(config, authenticator=self._make_authenticator(config)).fill_context()
         return True, None
 
@@ -72,7 +74,7 @@ class SourceAmazonAds(AbstractSource):
         """
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
-        config = Config(**config)
+        config = Spec(**config)
         auth = self._make_authenticator(config)
         profiles_stream = Profiles(config, context=self.ctx, authenticator=auth)
         profiles_stream.fill_context()
@@ -96,8 +98,11 @@ class SourceAmazonAds(AbstractSource):
             SponsoredBrandsReportStream(config, context=self.ctx, authenticator=auth),
         ]
 
+    def spec(self, *args) -> ConnectorSpecification:
+        return ConnectorSpecification.parse_obj(Spec.schema())
+
     @staticmethod
-    def _make_authenticator(config: Config):
+    def _make_authenticator(config: Spec):
         return Oauth2Authenticator(
             TOKEN_URL,
             config.client_id,

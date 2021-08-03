@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+
 from typing import Any, Iterable, Mapping
 
 import requests
@@ -44,12 +45,12 @@ class Profiles(AmazonAdsStream):
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         for record in super().parse_response(response, **kwargs):
             profile_id_obj = self.model.parse_obj(record)
-            self.ctx.profiles.append(profile_id_obj)
+            self._ctx.profiles.append(profile_id_obj)
             yield record
 
     def read_records(self, *args, **kvargs) -> Iterable[Mapping[str, Any]]:
-        if self.ctx.profiles:
-            yield from [profile.dict(exclude_unset=True) for profile in self.ctx.profiles]
+        if self._ctx.profiles:
+            yield from [profile.dict(exclude_unset=True) for profile in self._ctx.profiles]
         else:
             yield from super().read_records(*args, **kvargs)
 

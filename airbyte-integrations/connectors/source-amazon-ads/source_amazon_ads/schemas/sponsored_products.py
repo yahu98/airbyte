@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+
 from decimal import Decimal
 from typing import Dict, List
 
@@ -47,7 +48,7 @@ class Predicate(JSEnum):
     PLACEMENT_PRODUCT_PAGE = "placementProductPage"
 
 
-class Adjustments(JSEnum):
+class Adjustments(JSModel):
     predicate: Predicate
     percentage: Decimal
 

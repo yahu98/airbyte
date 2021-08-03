@@ -31,10 +31,11 @@ from airbyte_cdk.models import SyncMode
 from freezegun import freeze_time
 from pytest import raises
 from requests.exceptions import ConnectionError
-from source_amazon_ads.common import Config, SourceContext
+from source_amazon_ads.common import SourceContext
 from source_amazon_ads.report_streams import DisplayReportStream
 from source_amazon_ads.report_streams.report_streams import TooManyRequests
 from source_amazon_ads.schemas.profile import AccountInfo, Profile, TimeZones, Types
+from source_amazon_ads.spec import Spec
 
 """
 METRIC_RESPONSE is gzip compressed binary representing this string:
@@ -117,7 +118,7 @@ def test_display_report_stream(test_config):
         metric_response=METRIC_RESPONSE,
     )
 
-    config = Config(**test_config)
+    config = Spec(**test_config)
     ctx = make_context()
 
     stream = DisplayReportStream(config, ctx, authenticator=mock.MagicMock())
@@ -142,7 +143,7 @@ def test_display_report_stream_report_generation_failure(test_config):
         metric_response=METRIC_RESPONSE,
     )
 
-    config = Config(**test_config)
+    config = Spec(**test_config)
     ctx = make_context()
 
     stream = DisplayReportStream(config, ctx, authenticator=mock.MagicMock())
@@ -153,7 +154,7 @@ def test_display_report_stream_report_generation_failure(test_config):
 
 @responses.activate
 def test_display_report_stream_init_failure(mocker, test_config):
-    config = Config(**test_config)
+    config = Spec(**test_config)
     ctx = make_context()
     stream = DisplayReportStream(config, ctx, authenticator=mock.MagicMock())
     stream_slice = {"reportDate": "20210725"}
@@ -168,7 +169,7 @@ def test_display_report_stream_init_failure(mocker, test_config):
 @responses.activate
 def test_display_report_stream_init_http_exception(mocker, test_config):
     mocker.patch("time.sleep", lambda x: None)
-    config = Config(**test_config)
+    config = Spec(**test_config)
     ctx = make_context()
     stream = DisplayReportStream(config, ctx, authenticator=mock.MagicMock())
     stream_slice = {"reportDate": "20210725"}
@@ -182,7 +183,7 @@ def test_display_report_stream_init_http_exception(mocker, test_config):
 @responses.activate
 def test_display_report_stream_init_too_many_requests(mocker, test_config):
     mocker.patch("time.sleep", lambda x: None)
-    config = Config(**test_config)
+    config = Spec(**test_config)
     ctx = make_context()
     stream = DisplayReportStream(config, ctx, authenticator=mock.MagicMock())
     stream_slice = {"reportDate": "20210725"}
@@ -217,7 +218,7 @@ def test_display_report_stream_timeout(mocker, test_config):
         responses.add_callback(
             responses.GET, re.compile(r"https://advertising-api.amazon.com/v2/reports/[^/]+$"), callback=StatusCallback()
         )
-        config = Config(**test_config)
+        config = Spec(**test_config)
         ctx = make_context()
         stream = DisplayReportStream(config, ctx, authenticator=mock.MagicMock())
         stream_slice = {"reportDate": "20210725"}
@@ -231,7 +232,7 @@ def test_display_report_stream_timeout(mocker, test_config):
 @freeze_time("2021-07-30 04:26:08")
 @responses.activate
 def test_display_report_stream_slices_full_refresh(test_config):
-    config = Config(**test_config)
+    config = Spec(**test_config)
     stream = DisplayReportStream(config, None, authenticator=mock.MagicMock())
     slices = stream.stream_slices(SyncMode.full_refresh, cursor_field=stream.cursor_field)
     assert slices == [{"reportDate": "20210730"}]
@@ -240,7 +241,7 @@ def test_display_report_stream_slices_full_refresh(test_config):
 @freeze_time("2021-07-30 04:26:08")
 @responses.activate
 def test_display_report_stream_slices_incremental(test_config):
-    config = Config(**test_config)
+    config = Spec(**test_config)
     stream = DisplayReportStream(config, None, authenticator=mock.MagicMock())
     stream_state = {"reportDate": "20210726"}
     slices = stream.stream_slices(SyncMode.incremental, cursor_field=stream.cursor_field, stream_state=stream_state)

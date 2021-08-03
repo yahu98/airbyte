@@ -25,18 +25,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from pydantic import BaseModel
-
 from .schemas.profile import Profile
-
-URL_BASE = "https://advertising-api.amazon.com/"
-
-
-class Config(BaseModel):
-    client_id: str
-    client_secret: str
-    scope: str
-    refresh_token: str
 
 
 @dataclass
