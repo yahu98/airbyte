@@ -80,10 +80,7 @@ class AmazonAdsStream(HttpStream, BasicAmazonAdsStream):
         """
         :return an object representing single record in the response
         """
-        if response:
-            yield from json.loads(response.text)
-        else:
-            yield from []
+        yield from json.loads(response.text) if response else []
 
     def _send_request(self, request: requests.PreparedRequest, request_kwargs: Mapping[str, Any]) -> requests.Response:
         try:

@@ -32,10 +32,10 @@ from freezegun import freeze_time
 from pytest import raises
 from requests.exceptions import ConnectionError
 from source_amazon_ads.common import SourceContext
-from source_amazon_ads.report_streams import DisplayReportStream, SponsoredBrandsReportStream, SponsoredProductsReportStream
-from source_amazon_ads.report_streams.report_streams import TooManyRequests
 from source_amazon_ads.schemas.profile import AccountInfo, Profile, TimeZones, Types
 from source_amazon_ads.spec import Spec
+from source_amazon_ads.streams import DisplayReportStream, SponsoredBrandsReportStream, SponsoredProductsReportStream
+from source_amazon_ads.streams.report_streams.report_streams import TooManyRequests
 
 """
 METRIC_RESPONSE is gzip compressed binary representing this string:

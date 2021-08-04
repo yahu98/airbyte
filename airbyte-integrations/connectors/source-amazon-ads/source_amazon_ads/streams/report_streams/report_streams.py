@@ -22,6 +22,7 @@
 # SOFTWARE.
 #
 
+import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -29,7 +30,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from gzip import decompress
 from http import HTTPStatus
-from json import loads
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 from urllib.parse import urljoin
 
@@ -41,7 +41,7 @@ from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 from pydantic import BaseModel
 from source_amazon_ads.common import SourceContext
-from source_amazon_ads.schemas import MetricsReport
+from source_amazon_ads.schemas import JSModel, MetricsReport
 from source_amazon_ads.spec import Spec
 from source_amazon_ads.streams.common import BasicAmazonAdsStream
 
@@ -103,7 +103,7 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         super().__init__(config, context)
 
     @property
-    def model(self):
+    def model(self) -> JSModel:
         return self._model
 
     def read_records(
@@ -305,4 +305,4 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         """
         response = self._send_http_request(url, report_info.profile_id)
         raw_string = decompress(response.content).decode("utf")
-        return loads(raw_string)
+        return json.loads(raw_string)

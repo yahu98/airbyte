@@ -32,13 +32,14 @@ from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http.auth import Oauth2Authenticator
 
 from .common import SourceContext
-from .report_streams import DisplayReportStream, SponsoredBrandsReportStream, SponsoredProductsReportStream
 from .spec import Spec
 from .streams import (
+    DisplayReportStream,
     Profiles,
     SponsoredBrandsAdGroups,
     SponsoredBrandsCampaigns,
     SponsoredBrandsKeywords,
+    SponsoredBrandsReportStream,
     SponsoredDisplayAdGroups,
     SponsoredDisplayCampaigns,
     SponsoredDisplayProductAds,
@@ -48,6 +49,7 @@ from .streams import (
     SponsoredProductCampaigns,
     SponsoredProductKeywords,
     SponsoredProductNegativeKeywords,
+    SponsoredProductsReportStream,
     SponsoredProductTargetings,
 )
 

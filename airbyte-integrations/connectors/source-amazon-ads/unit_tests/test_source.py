@@ -28,7 +28,7 @@ from jsonschema import Draft4Validator
 from source_amazon_ads import SourceAmazonAds
 
 
-def setup_responses(profiles_response=[]):
+def setup_responses():
     responses.add(
         responses.POST,
         "https://api.amazon.com/auth/o2/token",
@@ -37,7 +37,7 @@ def setup_responses(profiles_response=[]):
     responses.add(
         responses.GET,
         "https://advertising-api.amazon.com/v2/profiles",
-        json=profiles_response,
+        json=[],
     )
 
 
