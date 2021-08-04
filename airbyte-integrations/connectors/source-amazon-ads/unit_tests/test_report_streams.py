@@ -297,11 +297,11 @@ def test_display_report_stream_slices_incremental(test_config):
     ]
     stream_state = {"reportDate": "20210730"}
     slices = stream.stream_slices(SyncMode.incremental, cursor_field=stream.cursor_field, stream_state=stream_state)
-    assert slices == []
+    assert slices == [None]
 
     stream_state = {"reportDate": "20210731"}
     slices = stream.stream_slices(SyncMode.incremental, cursor_field=stream.cursor_field, stream_state=stream_state)
-    assert slices == []
+    assert slices == [None]
 
     slices = stream.stream_slices(SyncMode.incremental, cursor_field=stream.cursor_field, stream_state={})
     assert slices == [{"reportDate": "20210730"}]

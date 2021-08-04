@@ -25,6 +25,7 @@ tests:
         extra_fields: no
         exact_order: no
         extra_records: yes
+
     - config_path: "secrets/config.json"
       configured_catalog_path: "integration_tests/no_profiles_catalog.json"
       empty_streams:
@@ -50,6 +51,27 @@ tests:
         extra_fields: no
         exact_order: no
         extra_records: no
+    - config_path: "secrets/config.json"
+      configured_catalog_path: "integration_tests/configured_catalog.json"
+      empty_streams:
+        [
+          "sponsored_brands_report_stream",
+          "display_report_stream",
+          "sponsored_display_product_ads",
+          "sponsored_display_targetings",
+          "sponsored_product_negative_keywords",
+          "sponsored_product_targetings",
+          "sponsored_product_ads",
+        ]
+      expect_records:
+        path: "integration_tests/expected_records.txt"
+        extra_fields: no
+        exact_order: no
+        extra_records: yes
   full_refresh:
     - config_path: "secrets/config.json"
-      configured_catalog_path: "integration_tests/configured_catalog_display.json"
+      configured_catalog_path: "integration_tests/configured_catalog_full_refresh.json"
+  incremental:
+    - config_path: "secrets/config.json"
+      configured_catalog_path: "integration_tests/configured_catalog_incremental.json"
+      future_state_path: "integration_tests/abnormal_state.json"

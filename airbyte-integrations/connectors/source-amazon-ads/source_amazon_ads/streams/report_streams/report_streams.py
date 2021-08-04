@@ -114,6 +114,8 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
 
+        if not stream_slice:
+            return
         report_date = stream_slice[self.cursor_field]
         report_infos = self._init_reports(report_date)
         logger.info(f"Waiting for {len(report_infos)} report(s) to be generated")
@@ -238,7 +240,7 @@ class ReportStream(BasicAmazonAdsStream, ABC):
                 # We already processed records for date specified in stream state, move to the day after
                 start_date += timedelta(days=1)
 
-        return [{self.cursor_field: date} for date in ReportStream.get_report_date_ranges(start_date)]
+        return [{self.cursor_field: date} for date in ReportStream.get_report_date_ranges(start_date)] or [None]
 
     def get_updated_state(self, current_stream_state: Dict[str, Any], latest_data: Mapping[str, Any]) -> Mapping[str, Any]:
         return {"reportDate": latest_data["reportDate"]}
@@ -256,7 +258,7 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         report_infos = []
         for profile in self._ctx.profiles:
             for record_type, metrics in self.metrics_map.items():
-                metric_date = self._calc_report_generateion_date(report_date, profile)
+                metric_date = self._calc_report_generation_date(report_date, profile)
 
                 report_init_body = self._get_init_report_body(metric_date, record_type, profile)
                 if not report_init_body:
@@ -285,7 +287,7 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         return report_infos
 
     @staticmethod
-    def _calc_report_generateion_date(report_date: str, profile):
+    def _calc_report_generation_date(report_date: str, profile):
         """
         According to reference time zone is specified by the profile used to
         request the report. If specified date is today, then the performance
