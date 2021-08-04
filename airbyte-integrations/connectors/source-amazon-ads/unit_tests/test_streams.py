@@ -94,7 +94,7 @@ def get_stream_by_name(streams, stream_name):
     for stream in streams:
         if stream.name == stream_name:
             return stream
-    raise Exception(f"Excpeted stream {stream_name} not found")
+    raise Exception(f"Expected stream {stream_name} not found")
 
 
 @responses.activate
@@ -107,6 +107,7 @@ def test_streams_profile(test_config, profiles_response):
     actual_stream_names = {stream.name for stream in streams}
     expected_stream_names = set(
         [
+            "profiles",
             "sponsored_display_campaigns",
             "sponsored_product_campaigns",
             "sponsored_product_ad_groups",
@@ -123,8 +124,7 @@ def test_streams_profile(test_config, profiles_response):
     )
     assert not expected_stream_names - actual_stream_names
 
-    profile_stream = streams[0]
-    assert profile_stream.name == "profiles"
+    profile_stream = get_stream_by_name(streams, "profiles")
     schema = profile_stream.get_json_schema()
     records = get_all_stream_records(profile_stream)
     assert len(responses.calls) == 2
@@ -258,7 +258,7 @@ def test_streams_displays(
     source = SourceAmazonAds()
     streams = source.streams(test_config)
     profile_stream = get_stream_by_name(streams, "profiles")
-    test_stream = [stream for stream in streams if stream.name == stream_name][0]
+    test_stream = get_stream_by_name(streams, stream_name)
     _ = get_all_stream_records(profile_stream)
 
     records = get_all_stream_records(test_stream)
@@ -298,7 +298,7 @@ def test_streams_brands_and_products(
     source = SourceAmazonAds()
     streams = source.streams(test_config)
     profile_stream = get_stream_by_name(streams, "profiles")
-    test_stream = [stream for stream in streams if stream.name == stream_name][0]
+    test_stream = get_stream_by_name(streams, stream_name)
     _ = get_all_stream_records(profile_stream)
 
     records = get_all_stream_records(test_stream)
