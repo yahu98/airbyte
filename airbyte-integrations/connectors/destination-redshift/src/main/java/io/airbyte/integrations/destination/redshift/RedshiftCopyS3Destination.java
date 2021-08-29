@@ -87,7 +87,7 @@ public class RedshiftCopyS3Destination extends CopyDestination {
         RedshiftInsertDestination.DRIVER_CLASS);
   }
 
-  @Override
+  @Override 
   public SqlOperations getSqlOperations() {
     return new RedshiftSqlOperations();
   }
